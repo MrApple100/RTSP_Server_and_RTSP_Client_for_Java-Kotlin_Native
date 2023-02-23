@@ -1,0 +1,66 @@
+
+apply plugin: 'java'
+apply plugin: 'kotlin'
+apply plugin: 'idea'
+apply plugin: 'application'
+
+
+application {
+    mainClassName = "mrapple100.Client"
+}
+sourceSets.main.java.srcDirs = ['src']
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+buildscript {
+    ext.kotlin_version = '1.3.72'
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+
+}
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+dependencies {
+    implementation group: 'org.jcodec', name: 'jcodec', version: '0.1.9'
+    implementation group: 'org.bytedeco', name: 'javacv', version: '1.5.8'
+    implementation group: 'org.bytedeco', name: 'opencv-platform-gpu', version: '4.6.0-1.5.8'
+    implementation group: 'org.bytedeco', name: 'ffmpeg-platform-gpl', version: '5.1.2-1.5.8'
+
+    implementation group: 'org.bytedeco', name: 'javacpp', version: '+'
+    implementation group: 'org.bytedeco.javacpp-presets', name: 'opencv-platform', version: '+'
+    implementation group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg-platform', version: '+'
+    implementation "commons-io:commons-io:+"
+
+
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+
+}
+wrapper {
+    gradleVersion = '7.2'
+}
+task runWithJavaExec(type: JavaExec) {
+    // group = 'Execution'
+    // description = "Run the main class with JavaExecTask"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClassName = 'mrapple100.Client'
+}
+runWithJavaExec.onlyIf { project.hasProperty('Execution')}
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
