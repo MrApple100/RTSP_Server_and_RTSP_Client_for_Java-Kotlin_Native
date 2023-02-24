@@ -161,7 +161,7 @@ public final class VideoCodecUtils {
 //                byte nalUnitType = (byte)(nalUnitTypeOctet & 0x1f);
 //
 //                if (DEBUG)
-//                    Log.d(TAG, "NAL unit type: " + getH264NalUnitTypeString(nalUnitType));
+//                    // Log.d(TAG, "NAL unit type: " + getH264NalUnitTypeString(nalUnitType));
 //
 //                switch (nalUnitType) {
 //                    case NAL_IDR_SLICE:
