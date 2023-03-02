@@ -1,10 +1,11 @@
-package com.pedro.rtspserver
+package mrapple100.Server.rtspserver
 
-import android.util.Log
 import mrapple100.Server.rtsp.rtsp.Protocol
-import com.pedro.rtsp.rtsp.RtspSender
+import mrapple100.Server.rtsp.rtsp.RtspSender
 import mrapple100.Server.rtsp.rtsp.commands.Method
 import com.pedro.rtsp.utils.ConnectCheckerRtsp
+import com.pedro.rtspserver.ClientListener
+import com.pedro.rtspserver.ServerCommandManager
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.InputStreamReader
@@ -39,7 +40,7 @@ open class ServerClient(private val socket: Socket, serverIp: String, serverPort
 
   override fun run() {
     super.run()
-    Log.i(TAG, "New client ${commandsManager.clientIp}")
+   // Log.i(TAG, "New client ${commandsManager.clientIp}")
     while (!interrupted()) {
       try {
         val request = commandsManager.getRequest(input)
@@ -50,12 +51,12 @@ open class ServerClient(private val socket: Socket, serverIp: String, serverPort
           continue
         }
         val response = commandsManager.createResponse(request.method, request.text, cSeq)
-        Log.i(TAG, response)
+      //  Log.i(TAG, response)
         output.write(response)
         output.flush()
 
         if (request.method == Method.PLAY) {
-          Log.i(TAG, "Protocol ${commandsManager.protocol}")
+       //   Log.i(TAG, "Protocol ${commandsManager.protocol}")
           rtspSender.setSocketsInfo(commandsManager.protocol, commandsManager.videoServerPorts,
               commandsManager.audioServerPorts)
           if (!commandsManager.videoDisabled) {
@@ -77,15 +78,15 @@ open class ServerClient(private val socket: Socket, serverIp: String, serverPort
           connectCheckerRtsp.onConnectionSuccessRtsp()
           canSend = true
         } else if (request.method == Method.TEARDOWN) {
-          Log.i(TAG, "Client disconnected")
+        //  Log.i(TAG, "Client disconnected")
           listener.onDisconnected(this)
         }
       } catch (e: SocketException) { // Client has left
-        Log.e(TAG, "Client disconnected", e)
+      //  Log.e(TAG, "Client disconnected", e)
         listener.onDisconnected(this)
         break
       } catch (e: Exception) {
-        Log.e(TAG, "Unexpected error", e)
+     //   Log.e(TAG, "Unexpected error", e)
       }
     }
   }

@@ -16,9 +16,9 @@
 
 package mrapple100.Server.encoder.video;
 
-import android.media.MediaCodec;
 
-import android.media.MediaFormat;
+import mrapple100.Server.MediaBufferInfo;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -29,7 +29,6 @@ public interface GetVideoData {
 
   void onSpsPpsVps(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps);
 
-  void getVideoData(ByteBuffer h264Buffer, MediaCodec.BufferInfo info);
+  void getVideoData(ByteBuffer h264Buffer, MediaBufferInfo info);
 
-  void onVideoFormat(MediaFormat mediaFormat);
 }

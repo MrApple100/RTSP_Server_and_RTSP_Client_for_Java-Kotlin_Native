@@ -1,33 +1,15 @@
-/*
- * Copyright (C) 2021 pedroSG94.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-package com.pedro.rtsp.rtsp
+package mrapple100.Server.rtsp.rtsp
 
-import android.media.MediaCodec
-import android.util.Log
+
 import com.pedro.rtsp.rtcp.BaseSenderReport
-import com.pedro.rtsp.rtp.packets.*
 import mrapple100.Server.rtsp.rtp.sockets.BaseRtpSocket
 import mrapple100.Server.rtsp.rtp.sockets.RtpSocketTcp
 import com.pedro.rtsp.utils.BitrateManager
 import com.pedro.rtsp.utils.ConnectCheckerRtsp
 import com.pedro.rtsp.utils.RtpConstants
+import mrapple100.Server.MediaBufferInfo
 import mrapple100.Server.rtsp.rtp.packets.*
-import mrapple100.Server.rtsp.rtsp.Protocol
-import mrapple100.Server.rtsp.rtsp.RtpFrame
 import java.io.IOException
 import java.io.OutputStream
 import java.nio.ByteBuffer
@@ -37,10 +19,9 @@ import java.util.concurrent.*
 /**
  * Created by pedro on 7/11/18.
  */
-open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : VideoPacketCallback, AudioPacketCallback {
+open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : VideoPacketCallback{
 
   private var videoPacket: BasePacket? = null
-  private var aacPacket: AacPacket? = null
   private var rtpSocket: BaseRtpSocket? = null
   private var baseSenderReport: BaseSenderReport? = null
   @Volatile
@@ -72,10 +53,6 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
     videoPacket = if (vps == null) H264Packet(sps, pps, this) else H265Packet(sps, pps, vps, this)
   }
 
-  fun setAudioInfo(sampleRate: Int) {
-    aacPacket = AacPacket(sampleRate, this)
-  }
-
   /**
    * @return number of packets
    */
@@ -92,35 +69,22 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
     videoPacket?.setPorts(rtpPort, rtcpPort)
   }
 
-  fun setAudioPorts(rtpPort: Int, rtcpPort: Int) {
-    aacPacket?.setPorts(rtpPort, rtcpPort)
-  }
 
-  fun sendVideoFrame(h264Buffer: ByteBuffer, info: MediaCodec.BufferInfo) {
+  fun sendVideoFrame(h264Buffer: ByteBuffer, info: MediaBufferInfo) {
     if (running) videoPacket?.createAndSendPacket(h264Buffer, info)
   }
 
-  fun sendAudioFrame(aacBuffer: ByteBuffer, info: MediaCodec.BufferInfo) {
-    if (running) aacPacket?.createAndSendPacket(aacBuffer, info)
-  }
 
   override fun onVideoFrameCreated(rtpFrame: RtpFrame) {
     try {
       rtpFrameBlockingQueue.add(rtpFrame)
     } catch (e: IllegalStateException) {
-      Log.i(TAG, "Video frame discarded")
+    //  Log.i(TAG, "Video frame discarded")
       droppedVideoFrames++
     }
   }
 
-  override fun onAudioFrameCreated(rtpFrame: RtpFrame) {
-    try {
-      rtpFrameBlockingQueue.add(rtpFrame)
-    } catch (e: IllegalStateException) {
-      Log.i(TAG, "Audio frame discarded")
-      droppedAudioFrames++
-    }
-  }
+
 
   fun start() {
     thread = Executors.newSingleThreadExecutor()
@@ -130,14 +94,13 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
       val ssrcAudio = Random().nextInt().toLong()
       baseSenderReport?.setSSRC(ssrcVideo, ssrcAudio)
       videoPacket?.setSSRC(ssrcVideo)
-      aacPacket?.setSSRC(ssrcAudio)
       val isTcp = rtpSocket is RtpSocketTcp
 
       while (!Thread.interrupted() && running) {
         try {
           val rtpFrame = rtpFrameBlockingQueue.poll(1, TimeUnit.SECONDS)
           if (rtpFrame == null) {
-            Log.i(TAG, "Skipping iteration, frame null")
+         //   Log.i(TAG, "Skipping iteration, frame null")
             continue
           }
           rtpSocket?.sendFrame(rtpFrame, isEnableLogs)
@@ -158,7 +121,7 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
           //InterruptedException is only when you disconnect manually, you don't need report it.
           if (e !is InterruptedException && running) {
             connectCheckerRtsp.onConnectionFailedRtsp("Error send packet, " + e.message)
-            Log.e(TAG, "send error: ", e)
+          //  Log.e(TAG, "send error: ", e)
           }
           return@post
         }
@@ -177,7 +140,6 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
     baseSenderReport?.reset()
     baseSenderReport?.close()
     rtpSocket?.close()
-    aacPacket?.reset()
     videoPacket?.reset()
     resetSentAudioFrames()
     resetSentVideoFrames()

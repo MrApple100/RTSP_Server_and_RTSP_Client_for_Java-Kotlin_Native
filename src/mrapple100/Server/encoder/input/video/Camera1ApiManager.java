@@ -12,7 +12,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ *//*
+
 
 package mrapple100.Server.encoder.input.video;
 
@@ -37,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+*/
 /**
  * Created by pedro on 20/01/17.
  *
@@ -48,7 +50,8 @@ import java.util.List;
  * <p>
  * If you want use all resolutions. You can use libYuv for resize images in OnPreviewFrame:
  * https://chromium.googlesource.com/libyuv/libyuv/
- */
+ *//*
+
 
 public class Camera1ApiManager implements Camera.PreviewCallback, Camera.FaceDetectionListener {
 
@@ -90,25 +93,13 @@ public class Camera1ApiManager implements Camera.PreviewCallback, Camera.FaceDet
   private final Rect faceSensorScale = new Rect(-1000, -1000, 1000, 1000);
   private FaceDetectorCallback faceDetectorCallback;
 
-  public Camera1ApiManager(SurfaceView surfaceView, GetCameraData getCameraData) {
+  public Camera1ApiManager(GetCameraData GetCameraData getCameraData) {
     this.surfaceView = surfaceView;
     this.getCameraData = getCameraData;
     this.context = surfaceView.getContext();
     init();
   }
 
-  public Camera1ApiManager(TextureView textureView, GetCameraData getCameraData) {
-    this.textureView = textureView;
-    this.getCameraData = getCameraData;
-    this.context = textureView.getContext();
-    init();
-  }
-
-  public Camera1ApiManager(SurfaceTexture surfaceTexture, Context context) {
-    this.surfaceTexture = surfaceTexture;
-    this.context = context;
-    init();
-  }
 
   private void init() {
     cameraSelect = selectCameraBack();
@@ -414,11 +405,13 @@ public class Camera1ApiManager implements Camera.PreviewCallback, Camera.FaceDet
     }
   }
 
-  /**
+  */
+/**
    * See: https://developer.android.com/reference/android/graphics/ImageFormat.html to know name of
    * constant values
    * Example: 842094169 -> YV12, 17 -> NV21
-   */
+   *//*
+
   public List<Integer> getCameraPreviewImageFormatSupported() {
     List<Integer> formats;
     if (camera != null) {
@@ -468,9 +461,11 @@ public class Camera1ApiManager implements Camera.PreviewCallback, Camera.FaceDet
     return previewSizeFront;
   }
 
-  /**
+  */
+/**
    * @return max size that device can record.
-   */
+   *//*
+
   private Camera.Size getMaxEncoderSizeSupported() {
     if (CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_2160P)) {
       return camera.new Size(3840, 2160);
@@ -539,9 +534,11 @@ public class Camera1ApiManager implements Camera.PreviewCallback, Camera.FaceDet
     return lanternEnable;
   }
 
-  /**
+  */
+/**
    * @required: <uses-permission android:name="android.permission.FLASHLIGHT"/>
-   */
+   *//*
+
   public void enableLantern() throws Exception {
     if (camera != null) {
       Camera.Parameters parameters = camera.getParameters();
@@ -576,9 +573,11 @@ public class Camera1ApiManager implements Camera.PreviewCallback, Camera.FaceDet
     return supportedFps;
   }
 
-  /**
+  */
+/**
    * @required: <uses-permission android:name="android.permission.FLASHLIGHT"/>
-   */
+   *//*
+
   public void disableLantern() {
     if (camera != null) {
       Camera.Parameters parameters = camera.getParameters();
@@ -757,3 +756,4 @@ public class Camera1ApiManager implements Camera.PreviewCallback, Camera.FaceDet
     return result;
   }
 }
+*/

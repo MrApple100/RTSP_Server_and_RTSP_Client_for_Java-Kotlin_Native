@@ -1,13 +1,12 @@
 
 package mrapple100.Server.rtsp.rtsp
 
-import android.media.MediaCodec
-import com.pedro.rtsp.rtsp.RtspSender
 import mrapple100.Server.rtsp.rtsp.commands.CommandsManager
 import mrapple100.Server.rtsp.rtsp.commands.Method
 import com.pedro.rtsp.utils.ConnectCheckerRtsp
 import com.pedro.rtsp.utils.CreateSSLSocket.createSSlSocket
 import com.pedro.rtsp.utils.RtpConstants
+import mrapple100.Server.MediaBufferInfo
 import java.io.*
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -155,9 +154,6 @@ open class RtspClient(private val connectCheckerRtsp: ConnectCheckerRtsp) {
           rtspSender.setSocketsInfo(commandsManager.protocol,
             commandsManager.videoClientPorts,
             commandsManager.audioClientPorts)
-          if (!commandsManager.audioDisabled) {
-            rtspSender.setAudioInfo(commandsManager.sampleRate)
-          }
           if (!commandsManager.videoDisabled) {
             if (commandsManager.sps == null || commandsManager.pps == null) {
               semaphore.drainPermits()
@@ -257,12 +253,8 @@ open class RtspClient(private val connectCheckerRtsp: ConnectCheckerRtsp) {
             rtspSender.setDataStream(out, host)
           }
           val videoPorts = commandsManager.videoServerPorts
-          val audioPorts = commandsManager.audioServerPorts
           if (!commandsManager.videoDisabled) {
             rtspSender.setVideoPorts(videoPorts[0], videoPorts[1])
-          }
-          if (!commandsManager.audioDisabled) {
-            rtspSender.setAudioPorts(audioPorts[0], audioPorts[1])
           }
           rtspSender.start()
           reTries = numRetry
@@ -361,17 +353,12 @@ open class RtspClient(private val connectCheckerRtsp: ConnectCheckerRtsp) {
     }
   }
 
-  fun sendVideo(h264Buffer: ByteBuffer, info: MediaCodec.BufferInfo) {
+  fun sendVideo(h264Buffer: ByteBuffer, info: MediaBufferInfo) {
     if (!commandsManager.videoDisabled) {
       rtspSender.sendVideoFrame(h264Buffer, info)
     }
   }
 
-  fun sendAudio(aacBuffer: ByteBuffer, info: MediaCodec.BufferInfo) {
-    if (!commandsManager.audioDisabled) {
-      rtspSender.sendAudioFrame(aacBuffer, info)
-    }
-  }
 
   fun hasCongestion(): Boolean {
     return rtspSender.hasCongestion()

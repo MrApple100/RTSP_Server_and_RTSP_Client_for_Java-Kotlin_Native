@@ -1,17 +1,12 @@
-package com.pedro.rtspserver
+package mrapple100.Server.rtspserver
 
-import android.content.Context
-import android.media.MediaCodec
-import android.os.Build
-import android.view.SurfaceView
-import android.view.TextureView
-import androidx.annotation.RequiresApi
-import com.pedro.encoder.utils.CodecUtil
-import com.pedro.rtplibrary.base.Camera1Base
-import com.pedro.rtplibrary.view.LightOpenGlView
-import com.pedro.rtplibrary.view.OpenGlView
+
 import com.pedro.rtsp.rtsp.VideoCodec
 import com.pedro.rtsp.utils.ConnectCheckerRtsp
+import com.pedro.rtspserver.RtspServer
+import mrapple100.Server.MediaBufferInfo
+import mrapple100.Server.encoder.utils.CodecUtil
+import mrapple100.Server.rtplibrary.base.Camera1Base
 import java.nio.ByteBuffer
 
 /**
@@ -21,33 +16,11 @@ open class RtspServerCamera1 : Camera1Base {
 
   private val rtspServer: RtspServer
 
-  constructor(surfaceView: SurfaceView, connectCheckerRtsp: ConnectCheckerRtsp, port: Int) : super(
-    surfaceView) {
+  constructor( connectCheckerRtsp: ConnectCheckerRtsp, port: Int) : super() {
     rtspServer = RtspServer(connectCheckerRtsp, port)
   }
 
-  constructor(textureView: TextureView, connectCheckerRtsp: ConnectCheckerRtsp, port: Int) : super(
-    textureView) {
-    rtspServer = RtspServer(connectCheckerRtsp, port)
-  }
 
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-  constructor(openGlView: OpenGlView, connectCheckerRtsp: ConnectCheckerRtsp, port: Int) : super(
-    openGlView) {
-    rtspServer = RtspServer(connectCheckerRtsp, port)
-  }
-
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-  constructor(lightOpenGlView: LightOpenGlView, connectCheckerRtsp: ConnectCheckerRtsp,
-    port: Int) : super(lightOpenGlView) {
-    rtspServer = RtspServer(connectCheckerRtsp, port)
-  }
-
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-  constructor(context: Context, connectCheckerRtsp: ConnectCheckerRtsp, port: Int) : super(
-    context) {
-    rtspServer = RtspServer(connectCheckerRtsp, port)
-  }
 
   fun setVideoCodec(videoCodec: VideoCodec) {
     videoEncoder.type =
@@ -67,20 +40,12 @@ open class RtspServerCamera1 : Camera1Base {
     rtspServer.startServer()
   }
 
-  override fun prepareAudioRtp(isStereo: Boolean, sampleRate: Int) {
-    rtspServer.isStereo = isStereo
-    rtspServer.sampleRate = sampleRate
-  }
 
   override fun startStreamRtp(url: String) { //unused
   }
 
   override fun stopStreamRtp() {
     rtspServer.stopServer()
-  }
-
-  override fun getAacDataRtp(aacBuffer: ByteBuffer, info: MediaCodec.BufferInfo) {
-    rtspServer.sendAudio(aacBuffer, info)
   }
 
   override fun onSpsPpsVpsRtp(sps: ByteBuffer, pps: ByteBuffer, vps: ByteBuffer?) {
@@ -90,7 +55,7 @@ open class RtspServerCamera1 : Camera1Base {
     rtspServer.setVideoInfo(newSps, newPps, newVps)
   }
 
-  override fun getH264DataRtp(h264Buffer: ByteBuffer, info: MediaCodec.BufferInfo) {
+  override fun getH264DataRtp(h264Buffer: ByteBuffer, info: MediaBufferInfo) {
     rtspServer.sendVideo(h264Buffer, info)
   }
 
@@ -118,25 +83,24 @@ open class RtspServerCamera1 : Camera1Base {
   override fun reConnect(delay: Long, backupUrl: String?) {
   }
 
-  override fun getCacheSize(): Int = 0
+   fun getCacheSize(): Int = 0
 
-  override fun getSentAudioFrames(): Long = 0
+   fun getSentAudioFrames(): Long = 0
 
-  override fun getSentVideoFrames(): Long = 0
+   fun getSentVideoFrames(): Long = 0
 
-  override fun getDroppedAudioFrames(): Long = 0
+   fun getDroppedAudioFrames(): Long = 0
 
-  override fun getDroppedVideoFrames(): Long = 0
+   fun getDroppedVideoFrames(): Long = 0
 
-  override fun resetSentAudioFrames() {
-  }
+   fun resetSentAudioFrames() {}
 
-  override fun resetSentVideoFrames() {
-  }
 
-  override fun resetDroppedAudioFrames() {
-  }
+   fun resetSentVideoFrames() {}
 
-  override fun resetDroppedVideoFrames() {
-  }
+
+   fun resetDroppedAudioFrames() {}
+
+
+   fun resetDroppedVideoFrames() {}
 }

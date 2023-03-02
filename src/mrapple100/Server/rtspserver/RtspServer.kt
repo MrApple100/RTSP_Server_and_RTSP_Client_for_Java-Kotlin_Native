@@ -1,13 +1,13 @@
 package com.pedro.rtspserver
 
-import android.media.MediaCodec
-import android.util.Log
+
 import com.pedro.rtsp.utils.ConnectCheckerRtsp
 import com.pedro.rtsp.utils.RtpConstants
+import mrapple100.Server.MediaBufferInfo
+import mrapple100.Server.rtspserver.ServerClient
 import java.io.*
 import java.net.*
 import java.nio.ByteBuffer
-import java.util.*
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 
@@ -52,7 +52,7 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
         if (!videoDisabled) {
           if (sps == null || pps == null) {
             semaphore.drainPermits()
-            Log.i(TAG, "waiting for sps and pps")
+          //  Log.i(TAG, "waiting for sps and pps")
             semaphore.tryAcquire(5000, TimeUnit.MILLISECONDS)
           }
           if (sps == null || pps == null) {
@@ -63,16 +63,16 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
         server = ServerSocket(port)
       } catch (e: IOException) {
         connectCheckerRtsp.onConnectionFailedRtsp("Server creation failed")
-        Log.e(TAG, "Error", e)
+      //  Log.e(TAG, "Error", e)
         return@Thread
       }
-      Log.i(TAG, "Server started $serverIp:$port")
+     // Log.i(TAG, "Server started $serverIp:$port")
       while (!Thread.interrupted()) {
         try {
           val clientSocket = server?.accept() ?: continue
           val clientAddress = clientSocket.inetAddress.hostAddress
           if (clientAddress == null) {
-            Log.e(TAG, "Unknown client ip, closing clientSocket...")
+          //  Log.e(TAG, "Unknown client ip, closing clientSocket...")
             if (!clientSocket.isClosed) clientSocket.close()
             continue
           }
@@ -87,11 +87,11 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
           // server.close called
           break
         } catch (e: IOException) {
-          Log.e(TAG, "Error", e)
+        //  Log.e(TAG, "Error", e)
           continue
         }
       }
-      Log.i(TAG, "Server finished")
+    //  Log.i(TAG, "Server finished")
     }
     running = true
     thread?.start()
@@ -144,7 +144,7 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
     }
   }
 
-  fun sendVideo(h264Buffer: ByteBuffer, info: MediaCodec.BufferInfo) {
+  fun sendVideo(h264Buffer: ByteBuffer, info: MediaBufferInfo) {
     synchronized(clients) {
       clients.forEach {
         if (it.isAlive && it.canSend && !it.commandsManager.videoDisabled) {
@@ -154,7 +154,7 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
     }
   }
 
-  fun sendAudio(aacBuffer: ByteBuffer, info: MediaCodec.BufferInfo) {
+  fun sendAudio(aacBuffer: ByteBuffer, info: MediaBufferInfo) {
     synchronized(clients) {
       clients.forEach {
         if (it.isAlive && it.canSend && !it.commandsManager.audioDisabled) {

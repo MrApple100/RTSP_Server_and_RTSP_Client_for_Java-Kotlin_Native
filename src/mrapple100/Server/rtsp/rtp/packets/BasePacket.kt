@@ -1,9 +1,9 @@
 
-package com.pedro.rtsp.rtp.packets
+package mrapple100.Server.rtsp.rtp.packets
 
-import android.media.MediaCodec
 import com.pedro.rtsp.utils.RtpConstants
 import com.pedro.rtsp.utils.setLong
+import mrapple100.Server.MediaBufferInfo
 import java.nio.ByteBuffer
 import kotlin.experimental.and
 import kotlin.experimental.or
@@ -21,7 +21,7 @@ abstract class BasePacket(private val clock: Long, private val payloadType: Int)
   protected val maxPacketSize = RtpConstants.MTU - 28
   protected val TAG = "BasePacket"
 
-  abstract fun createAndSendPacket(byteBuffer: ByteBuffer, bufferInfo: MediaCodec.BufferInfo)
+  abstract fun createAndSendPacket(byteBuffer: ByteBuffer, bufferInfo: MediaBufferInfo)
 
   fun setPorts(rtpPort: Int, rtcpPort: Int) {
     this.rtpPort = rtpPort
