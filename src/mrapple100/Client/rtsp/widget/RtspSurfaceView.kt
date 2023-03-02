@@ -14,6 +14,7 @@ package mrapple100.Client.rtsp.widget
 import mrapple100.Client.rtsp.RtspClient
 import mrapple100.Client.rtsp.codec.FrameQueue
 import mrapple100.Client.rtsp.codec.VideoDecodeThread
+import mrapple100.Server.rtspserver.RtspServerCamera1
 import mrapple100.utils.FrameSynchronizer
 import mrapple100.utils.NetUtils
 import org.bytedeco.ffmpeg.avformat.AVFormatContext
@@ -27,7 +28,8 @@ import javax.swing.JLabel
 
 
 open class RtspSurfaceView(
-        val framePlace:JLabel
+        val framePlace:JLabel,
+        val RtspServer:RtspServerCamera1
 ) {
 
     var spspps: ByteArray? = null;
@@ -283,7 +285,7 @@ var nframe =0
                 }*/
          //   Log.i(TAG, "Starting video decoder with mime type \"$videoMimeType\"")
             videoDecodeThread = VideoDecodeThread(
-                framePlace, videoFrameQueue)
+                framePlace,RtspServer, videoFrameQueue)
             videoDecodeThread!!.name = "RTSP video thread [${getUriName()}]"
             videoDecodeThread!!.start()
         }

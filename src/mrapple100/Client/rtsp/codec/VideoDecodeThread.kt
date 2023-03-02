@@ -1,5 +1,9 @@
 package mrapple100.Client.rtsp.codec
 
+import mrapple100.Server.encoder.Frame
+import mrapple100.Server.encoder.video.VideoEncoder
+import mrapple100.Server.rtspserver.RtspServerCamera1
+import mrapple100.utils.ByteUtils
 import org.bytedeco.ffmpeg.avcodec.AVCodec
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext
 import org.bytedeco.ffmpeg.avcodec.AVPacket
@@ -11,6 +15,9 @@ import org.bytedeco.ffmpeg.global.swscale
 import org.bytedeco.ffmpeg.swscale.SwsContext
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.javacpp.DoublePointer
+import org.bytedeco.opencv.global.opencv_core
+import org.bytedeco.opencv.global.opencv_imgproc
+import org.bytedeco.opencv.opencv_core.IplImage
 import java.awt.Image
 import java.awt.Toolkit
 import java.awt.Transparency
@@ -25,6 +32,7 @@ import javax.swing.JLabel
 
 class VideoDecodeThread (
     private val framePlace: JLabel,
+    private val RtspServer:RtspServerCamera1,
     private val videoFrameQueue: FrameQueue
     ) : Thread() {
     var spspps: ByteArray? = null;
@@ -190,6 +198,15 @@ class VideoDecodeThread (
 
 
 
+                                    //convert rgb to yuv
+                                    val iplImage: IplImage = IplImage.create(context.width(), context.height(), opencv_core.IPL_DEPTH_8U, 3)
+                                    var data = BytePointer(iplImage.imageData())
+                                    var bytes = output.clone()
+                                    data.get(bytes)
+                                    opencv_imgproc.cvCvtColor(iplImage, iplImage, opencv_imgproc.CV_RGB2YUV)
+
+                                    RtspServer.inputYUVData(Frame(ByteUtils.iplImageToByteArray(iplImage),0,0))
+
                                     // }
 //                    av_packet_unref(packet)
 //                    avcodec_close(context)
@@ -230,6 +247,7 @@ class VideoDecodeThread (
 
      //   if (DEBUG) Log.d(TAG, "$name stopped")
     }
+
 
     companion object {
         private val TAG: String = VideoDecodeThread::class.java.simpleName
