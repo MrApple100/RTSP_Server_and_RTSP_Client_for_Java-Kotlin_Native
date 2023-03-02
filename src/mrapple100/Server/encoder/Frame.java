@@ -28,37 +28,22 @@ public class Frame {
   private int offset;
   private int size;
   private int orientation;
-  private boolean flip;
   private int format = 17; // ImageFormat.NV21; //nv21 or yv12 supported
 
   /**
    * Used with video frame
    */
-  public Frame(byte[] buffer, int orientation, boolean flip, int format) {
+  public Frame(byte[] buffer, int orientation, int format) {
     this.buffer = buffer;
     this.orientation = orientation;
-    this.flip = flip;
     this.format = format;
     offset = 0;
     size = buffer.length;
   }
 
-  /**
-   * Used with audio frame
-   */
-  public Frame(byte[] buffer, int offset, int size) {
-    this.buffer = buffer;
-    this.offset = offset;
-    this.size = size;
-  }
 
-  public byte[] getBuffer() {
-    return buffer;
-  }
 
-  public void setBuffer(byte[] buffer) {
-    this.buffer = buffer;
-  }
+
 
   public int getOrientation() {
     return orientation;
@@ -68,12 +53,12 @@ public class Frame {
     this.orientation = orientation;
   }
 
-  public boolean isFlip() {
-    return flip;
+  public byte[] getBuffer() {
+    return buffer;
   }
 
-  public void setFlip(boolean flip) {
-    this.flip = flip;
+  public void setBuffer(byte[] buffer) {
+    this.buffer = buffer;
   }
 
   public int getFormat() {

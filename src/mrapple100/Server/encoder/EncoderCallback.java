@@ -16,19 +16,18 @@
 
 package mrapple100.Server.encoder;
 
-import android.media.MediaCodec;
-import android.media.MediaFormat;
-import androidx.annotation.NonNull;
+
+import mrapple100.Server.MediaBufferInfo;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Created by pedro on 18/09/19.
  */
 public interface EncoderCallback {
-  void inputAvailable(@NonNull MediaCodec mediaCodec, int inBufferIndex)
+  void inputAvailable()
       throws IllegalStateException;
 
-  void outputAvailable(@NonNull MediaCodec mediaCodec, int outBufferIndex,
-      @NonNull MediaCodec.BufferInfo bufferInfo) throws IllegalStateException;
+  void outputAvailable(
+      @NotNull MediaBufferInfo bufferInfo) throws IllegalStateException, InterruptedException;
 
-  void formatChanged(@NonNull MediaCodec mediaCodec, @NonNull MediaFormat mediaFormat);
 }

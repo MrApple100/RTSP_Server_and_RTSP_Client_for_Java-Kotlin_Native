@@ -16,28 +16,46 @@
 
 package mrapple100.Server.encoder.video;
 
-import com.pedro.encoder.Frame;
-import com.pedro.encoder.utils.CodecUtil;
-import com.pedro.encoder.utils.yuv.YUVUtil;
+import com.sun.awt.AWTUtilities;
 import javafx.util.Pair;
+import mrapple100.Server.MediaBufferInfo;
 import mrapple100.Server.encoder.BaseEncoder;
 import mrapple100.Server.encoder.Frame;
 import mrapple100.Server.encoder.input.video.FpsLimiter;
 import mrapple100.Server.encoder.input.video.GetCameraData;
 import mrapple100.Server.encoder.utils.CodecUtil;
 import mrapple100.Server.encoder.utils.yuv.YUVUtil;
+import mrapple100.utils.ByteUtils;
+import org.bytedeco.ffmpeg.avcodec.AVCodec;
+import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacv.FFmpegFrameRecorder;
+import org.bytedeco.opencv.opencv_core.IplImage;
+import org.jcodec.common.model.Picture;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
+import static org.bytedeco.opencv.global.opencv_core.IPL_DEPTH_8U;
+import static org.bytedeco.opencv.global.opencv_imgproc.CV_BGR2YUV;
+import static org.bytedeco.opencv.global.opencv_imgproc.cvCvtColor;
 
 /**
  * Created by pedro on 19/01/17.
  * This class need use same resolution, fps and imageFormat that Camera1ApiManagerGl
  */
 
-public class VideoEncoder extends BaseEncoder implements GetCameraData {
+public class VideoEncoder extends BaseEncoder {
 
   private final GetVideoData getVideoData;
   private boolean spsPpsSetted = false;
@@ -45,15 +63,15 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
   //video data necessary to send after requestKeyframe.
   private ByteBuffer oldSps, oldPps, oldVps;
 
-  //surface to buffer encoder
-  private Surface inputSurface;
-
   private int width = 640;
   private int height = 480;
   private int fps = 30;
-  private int bitRate = 1200 * 1024; //in kbps
+  private int bitRate = 8000 * 1024; //in kbps
   private int rotation = 90;
   private int iFrameInterval = 2;
+  private AVCodec codec;
+  private AVCodecContext c;
+
   //for disable video
   private final FpsLimiter fpsLimiter = new FpsLimiter();
   private String type = CodecUtil.H264_MIME;
@@ -88,75 +106,33 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
     this.avcProfile = avcProfile;
     this.avcProfileLevel = avcProfileLevel;
     isBufferMode = true;
-    MediaCodecInfo encoder = chooseEncoder(type);
-    try {
-      if (encoder != null) {
-       // Log.i(TAG, "Encoder selected " + encoder.getName());
-        codec = MediaCodec.createByCodecName(encoder.getName());
-        if (this.formatVideoEncoder == FormatVideoEncoder.YUV420Dynamical) {
-          this.formatVideoEncoder = chooseColorDynamically(encoder);
-          if (this.formatVideoEncoder == null) {
-           // Log.e(TAG, "YUV420 dynamical choose failed");
-            return false;
-          }
-        }
-      } else {
-       // Log.e(TAG, "Valid encoder not found");
-        return false;
-      }
-      MediaFormat videoFormat;
-      //if you dont use mediacodec rotation you need swap width and height in rotation 90 or 270
-      // for correct encoding resolution
-      String resolution;
-      if ((rotation == 90 || rotation == 270)) {
-        resolution = height + "x" + width;
-        videoFormat = MediaFormat.createVideoFormat(type, height, width);
-      } else {
-        resolution = width + "x" + height;
-        videoFormat = MediaFormat.createVideoFormat(type, width, height);
-      }
-     // Log.i(TAG, "Prepare video info: " + this.formatVideoEncoder.name() + ", " + resolution);
-      videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
-          this.formatVideoEncoder.getFormatCodec());
-      videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
-      videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
-      videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, fps);
-      videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, iFrameInterval);
-      //Set CBR mode if supported by encoder.
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && CodecUtil.isCBRModeSupported(encoder, type)) {
-       // Log.i(TAG, "set bitrate mode CBR");
-        videoFormat.setInteger(MediaFormat.KEY_BITRATE_MODE,
-            MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR);
-      } else {
-       // Log.i(TAG, "bitrate mode CBR not supported using default mode");
-      }
+
+
+    codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+    c = avcodec_alloc_context3(codec);
+    c.bit_rate(bitRate);
+    c.width(width);
+    c.height(height);
+    c.time_base(new AVRational().num(1).den(fps));
+    c.gop_size(fps);
+    c.max_b_frames(0);
+    c.pix_fmt(AV_PIX_FMT_YUV420P);
+
+//     // Log.i(TAG, "Prepare video info: " + this.formatVideoEncoder.name() + ", " + resolution);
+//      videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
+//          this.formatVideoEncoder.getFormatCodec());
+//      videoFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 0);
+//      videoFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
+//      videoFormat.setInteger(MediaFormat.KEY_FRAME_RATE, fps);
+//      videoFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, iFrameInterval);
+
       // Rotation by encoder.
       // Removed because this is ignored by most encoders, producing different results on different devices
       //  videoFormat.setInteger(MediaFormat.KEY_ROTATION, rotation);
 
-      if (this.avcProfile > 0) {
-        // MediaFormat.KEY_PROFILE, API > 21
-        videoFormat.setInteger("profile", this.avcProfile);
-      }
-      if (this.avcProfileLevel > 0) {
-        // MediaFormat.KEY_LEVEL, API > 23
-        videoFormat.setInteger("level", this.avcProfileLevel);
-      }
-      setCallback();
-      codec.configure(videoFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-      running = false;
-      if (formatVideoEncoder == FormatVideoEncoder.SURFACE
-          && Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-        isBufferMode = false;
-        inputSurface = codec.createInputSurface();
-      }
-     // Log.i(TAG, "prepared");
-      return true;
-    } catch (Exception e) {
-    // // Log.e(TAG, "Create VideoEncoder failed.", e);
       this.stop();
       return false;
-    }
+
   }
 
   @Override
@@ -176,8 +152,6 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
   @Override
   protected void stopImp() {
     spsPpsSetted = false;
-    if (inputSurface != null) inputSurface.release();
-    inputSurface = null;
     oldSps = null;
     oldPps = null;
     oldVps = null;
@@ -192,16 +166,6 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
     restart();
   }
 
-  private FormatVideoEncoder chooseColorDynamically(MediaCodecInfo mediaCodecInfo) {
-    for (int color : mediaCodecInfo.getCapabilitiesForType(type).colorFormats) {
-      if (color == FormatVideoEncoder.YUV420PLANAR.getFormatCodec()) {
-        return FormatVideoEncoder.YUV420PLANAR;
-      } else if (color == FormatVideoEncoder.YUV420SEMIPLANAR.getFormatCodec()) {
-        return FormatVideoEncoder.YUV420SEMIPLANAR;
-      }
-    }
-    return null;
-  }
 
   /**
    * Prepare encoder with default parameters
@@ -211,46 +175,37 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
         formatVideoEncoder, avcProfile, avcProfileLevel);
   }
 
-  @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-  public void setVideoBitrateOnFly(int bitrate) {
-    if (isRunning()) {
-      this.bitRate = bitrate;
-      Bundle bundle = new Bundle();
-      bundle.putInt(MediaCodec.PARAMETER_KEY_VIDEO_BITRATE, bitrate);
-      try {
-        codec.setParameters(bundle);
-      } catch (IllegalStateException e) {
-       // Log.e(TAG, "encoder need be running", e);
-      }
-    }
-  }
+//  public void setVideoBitrateOnFly(int bitrate) {
+//    if (isRunning()) {
+//      this.bitRate = bitrate;
+//      Bundle bundle = new Bundle();
+//      bundle.putInt(MediaCodec.PARAMETER_KEY_VIDEO_BITRATE, bitrate);
+//      try {
+//        codec.setParameters(bundle);
+//      } catch (IllegalStateException e) {
+//       // Log.e(TAG, "encoder need be running", e);
+//      }
+//    }
+//  }
 
-  @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-  public void requestKeyframe() {
-    if (isRunning()) {
-      if (spsPpsSetted) {
-        Bundle bundle = new Bundle();
-        bundle.putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0);
-        try {
-          codec.setParameters(bundle);
-          getVideoData.onSpsPpsVps(oldSps, oldPps, oldVps);
-        } catch (IllegalStateException e) {
-         // Log.e(TAG, "encoder need be running", e);
-        }
-      } else {
-        //You need wait until encoder generate first frame.
-        forceKey = true;
-      }
-    }
-  }
+//  public void requestKeyframe() {
+//    if (isRunning()) {
+//      if (spsPpsSetted) {
+//        Bundle bundle = new Bundle();
+//        bundle.putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0);
+//        try {
+//          codec.setParameters(bundle);
+//          getVideoData.onSpsPpsVps(oldSps, oldPps, oldVps);
+//        } catch (IllegalStateException e) {
+//         // Log.e(TAG, "encoder need be running", e);
+//        }
+//      } else {
+//        //You need wait until encoder generate first frame.
+//        forceKey = true;
+//      }
+//    }
+//  }
 
-  public Surface getInputSurface() {
-    return inputSurface;
-  }
-
-  public void setInputSurface(Surface inputSurface) {
-    this.inputSurface = inputSurface;
-  }
 
   public int getWidth() {
     return width;
@@ -288,14 +243,32 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
     this.type = type;
   }
 
-  @Override
+//этот метод нужно поместить туда где появляется кадры
   public void inputYUVData(Frame frame) {
+    //initial codec H264
+
+    //open codec
+    //avcodec_open2(c,codec,new AVDictionary());
+    //initial media-writer ffmpeg
+
+
     if (running && !queue.offer(frame)) {
      // Log.i(TAG, "frame discarded");
     }
   }
-
-  private void sendSPSandPPS(MediaFormat mediaFormat) {
+public static byte[] imageToByteArray(BufferedImage image) {
+  try {
+    byte[] pixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+    int size = image.getWidth()*image.getHeight()*3;
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream(size);
+    outputStream.write(pixels);
+    return outputStream.toByteArray();
+  } catch (IOException e) {
+    e.printStackTrace();
+  }
+  return null;
+}
+  /*private void sendSPSandPPS(MediaFormat mediaFormat) {
     //H265
     if (type.equals(CodecUtil.H265_MIME)) {
       List<ByteBuffer> byteBufferList = extractVpsSpsPpsFromH265(mediaFormat.getByteBuffer("csd-0"));
@@ -310,42 +283,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
       oldVps = null;
       getVideoData.onSpsPpsVps(oldSps, oldPps, oldVps);
     }
-  }
-
-  /**
-   * choose the video encoder by mime.
-   */
-  @Override
-  protected MediaCodecInfo chooseEncoder(String mime) {
-    List<MediaCodecInfo> mediaCodecInfoList;
-    if (force == CodecUtil.Force.HARDWARE) {
-      mediaCodecInfoList = CodecUtil.getAllHardwareEncoders(mime, true);
-    } else if (force == CodecUtil.Force.SOFTWARE) {
-      mediaCodecInfoList = CodecUtil.getAllSoftwareEncoders(mime, true);
-    } else {
-      //Priority: hardware CBR > hardware > software CBR > software
-      mediaCodecInfoList = CodecUtil.getAllEncoders(mime, true, true);
-    }
-
-   // Log.i(TAG, mediaCodecInfoList.size() + " encoders found");
-    for (MediaCodecInfo mci : mediaCodecInfoList) {
-     // Log.i(TAG, "Encoder " + mci.getName());
-      MediaCodecInfo.CodecCapabilities codecCapabilities = mci.getCapabilitiesForType(mime);
-      for (int color : codecCapabilities.colorFormats) {
-       // Log.i(TAG, "Color supported: " + color);
-        if (formatVideoEncoder == FormatVideoEncoder.SURFACE) {
-          if (color == FormatVideoEncoder.SURFACE.getFormatCodec()) return mci;
-        } else {
-          //check if encoder support any yuv420 color
-          if (color == FormatVideoEncoder.YUV420PLANAR.getFormatCodec()
-              || color == FormatVideoEncoder.YUV420SEMIPLANAR.getFormatCodec()) {
-            return mci;
-          }
-        }
-      }
-    }
-    return null;
-  }
+  }*/
 
   /**
    * decode sps and pps if the encoder never call to MediaCodec.INFO_OUTPUT_FORMAT_CHANGED
@@ -434,17 +372,13 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
     Frame frame = queue.take();
     if (frame == null) return null;
     if (fpsLimiter.limitFPS()) return getInputFrame();
-    byte[] buffer = frame.getBuffer();
+   // byte[] buffer = frame.getBuffer();
     boolean isYV12 = frame.getFormat() == 20;//ImageFormat.YV12;
 
-    int orientation = frame.isFlip() ? frame.getOrientation() + 180 : frame.getOrientation();
-    if (orientation >= 360) orientation -= 360;
-    buffer = isYV12 ? YUVUtil.rotateYV12(buffer, width, height, orientation)
-        : YUVUtil.rotateNV21(buffer, width, height, orientation);
+//    int orientation = frame.isFlip() ? frame.getOrientation() + 180 : frame.getOrientation();
+//    if (orientation >= 360) orientation -= 360;
 
-    buffer = isYV12 ? YUVUtil.YV12toYUV420byColor(buffer, width, height, formatVideoEncoder)
-        : YUVUtil.NV21toYUV420byColor(buffer, width, height, formatVideoEncoder);
-    frame.setBuffer(buffer);
+//    frame.setBuffer(buffer);
     return frame;
   }
 
@@ -453,20 +387,12 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
     return System.nanoTime() / 1000 - presentTimeUs;
   }
 
-  @Override
-  public void formatChanged(@NotNull MediaCodec mediaCodec, @NotNull MediaFormat mediaFormat) {
-    getVideoData.onVideoFormat(mediaFormat);
-    sendSPSandPPS(mediaFormat);
-    spsPpsSetted = true;
-  }
 
   @Override
-  protected void checkBuffer(@NotNull ByteBuffer byteBuffer,
-      @NotNull MediaCodec.BufferInfo bufferInfo) {
-    if (forceKey && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+  protected void checkBuffer(@NotNull ByteBuffer byteBuffer, @NotNull MediaBufferInfo bufferInfo) {
       forceKey = false;
-      requestKeyframe();
-    }
+     // requestKeyframe();
+
     fixTimeStamp(bufferInfo);
     if (!spsPpsSetted && type.equals(CodecUtil.H264_MIME)) {
      // Log.i(TAG, "formatChanged not called, doing manual sps/pps extraction...");
@@ -502,7 +428,7 @@ public class VideoEncoder extends BaseEncoder implements GetCameraData {
 
   @Override
   protected void sendBuffer(@NotNull ByteBuffer byteBuffer,
-      @NotNull MediaCodec.BufferInfo bufferInfo) {
+      @NotNull MediaBufferInfo bufferInfo) {
     getVideoData.getVideoData(byteBuffer, bufferInfo);
   }
 }

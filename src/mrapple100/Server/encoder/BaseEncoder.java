@@ -16,17 +16,8 @@
 
 package mrapple100.Server.encoder;
 
-import android.media.MediaCodec;
-import android.media.MediaCodecInfo;
-import android.media.MediaFormat;
-import android.os.Build;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.util.Log;
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import com.pedro.encoder.EncoderCallback;
-import com.pedro.encoder.utils.CodecUtil;
+
+import mrapple100.Server.MediaBufferInfo;
 import mrapple100.Server.encoder.utils.CodecUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,18 +31,16 @@ import java.util.concurrent.BlockingQueue;
 public abstract class BaseEncoder implements EncoderCallback {
 
   protected String TAG = "BaseEncoder";
-  private final MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-  private HandlerThread handlerThread;
-  protected BlockingQueue<Frame> queue = new ArrayBlockingQueue<>(80);
-  protected MediaCodec codec;
+  private final MediaBufferInfo bufferInfo = new MediaBufferInfo();
+  protected BlockingQueue<Frame> queue = new ArrayBlockingQueue<>(1);
+  protected BlockingQueue<ByteBuffer> queuebb = new ArrayBlockingQueue<>(1);
+
   protected static long presentTimeUs;
   protected volatile boolean running = false;
   protected boolean isBufferMode = true;
   protected CodecUtil.Force force = CodecUtil.Force.FIRST_COMPATIBLE_FOUND;
-  private MediaCodec.Callback callback;
   private long oldTimeStamp = 0L;
   protected boolean shouldReset = true;
-  private Handler handler;
 
   public void restart() {
     start(false);
@@ -66,33 +55,22 @@ public abstract class BaseEncoder implements EncoderCallback {
     initCodec();
   }
 
-  protected void setCallback() {
-    handlerThread = new HandlerThread(TAG);
-    handlerThread.start();
-    handler = new Handler(handlerThread.getLooper());
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      createAsyncCallback();
-      codec.setCallback(callback, handler);
-    }
-  }
 
   private void initCodec() {
-    codec.start();
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-      handler.post(new Runnable() {
+      new Thread(new Runnable() {
         @Override
         public void run() {
           while (running) {
             try {
               getDataFromEncoder();
-            } catch (IllegalStateException e) {
-              Log.i(TAG, "Encoding error", e);
+            } catch (IllegalStateException | InterruptedException e) {
+              //Log.i(TAG, "Encoding error", e);
               reloadCodec();
             }
           }
         }
-      });
-    }
+      }).start();
+
     running = true;
   }
 
@@ -102,7 +80,7 @@ public abstract class BaseEncoder implements EncoderCallback {
 
   protected abstract void stopImp();
 
-  protected void fixTimeStamp(MediaCodec.BufferInfo info) {
+  protected void fixTimeStamp(MediaBufferInfo info) {
     if (oldTimeStamp > info.presentationTimeUs) {
       info.presentationTimeUs = oldTimeStamp;
     } else {
@@ -113,7 +91,7 @@ public abstract class BaseEncoder implements EncoderCallback {
   private void reloadCodec() {
     //Sometimes encoder crash, we will try recover it. Reset encoder a time if crash
     if (shouldReset) {
-      Log.e(TAG, "Encoder crashed, trying to recover it");
+    //  //Log.e(TAG, "Encoder crashed, trying to recover it");
       reset();
     }
   }
@@ -128,91 +106,55 @@ public abstract class BaseEncoder implements EncoderCallback {
     }
     running = false;
     stopImp();
-    if (handlerThread != null) {
-      if (handlerThread.getLooper() != null) {
-        if (handlerThread.getLooper().getThread() != null) {
-          handlerThread.getLooper().getThread().interrupt();
-        }
-        handlerThread.getLooper().quit();
-      }
-      handlerThread.quit();
-      if (codec != null) {
-        try {
-          codec.flush();
-        } catch (IllegalStateException ignored) { }
-      }
-      //wait for thread to die for 500ms.
-      try {
-        handlerThread.getLooper().getThread().join(500);
-      } catch (Exception ignored) { }
-    }
+
     queue.clear();
-    queue = new ArrayBlockingQueue<>(80);
-    try {
-      codec.stop();
-      codec.release();
-      codec = null;
-    } catch (IllegalStateException | NullPointerException e) {
-      codec = null;
-    }
+    queue = new ArrayBlockingQueue<>(1);
+
     oldTimeStamp = 0L;
   }
 
-  protected abstract MediaCodecInfo chooseEncoder(String mime);
 
-  protected void getDataFromEncoder() throws IllegalStateException {
-    if (isBufferMode) {
-      int inBufferIndex = codec.dequeueInputBuffer(0);
-      if (inBufferIndex >= 0) {
-        inputAvailable(codec, inBufferIndex);
-      }
-    }
-    while (running) {
-      int outBufferIndex = codec.dequeueOutputBuffer(bufferInfo, 0);
-      if (outBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-        MediaFormat mediaFormat = codec.getOutputFormat();
+  //here
+  protected void getDataFromEncoder() throws IllegalStateException, InterruptedException {
 
-        formatChanged(codec, mediaFormat);
-      } else if (outBufferIndex >= 0) {
-        outputAvailable(codec, outBufferIndex, bufferInfo);
-      } else {
-        break;
-      }
-    }
+        inputAvailable();
+
+
+
+        outputAvailable(bufferInfo);
+
   }
 
   protected abstract Frame getInputFrame() throws InterruptedException;
 
   protected abstract long calculatePts(Frame frame, long presentTimeUs);
 
-  private void processInput(@NotNull ByteBuffer byteBuffer, @NotNull MediaCodec mediaCodec,
-      int inBufferIndex) throws IllegalStateException {
+  private void processInput() throws IllegalStateException {
     try {
       Frame frame = getInputFrame();
       while (frame == null) frame = getInputFrame();
-      byteBuffer.clear();
-      int size = Math.max(0, Math.min(frame.getSize(), byteBuffer.remaining()) - frame.getOffset());
-      byteBuffer.put(frame.getBuffer(), frame.getOffset(), size);
-      long pts = calculatePts(frame, presentTimeUs);
-      mediaCodec.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
+//      byteBuffer.clear();
+//      int size = Math.max(0, Math.min(frame.getSize(), byteBuffer.remaining()) - frame.getOffset());
+//      byteBuffer.put(frame.getBuffer(), frame.getOffset(), size);
+//      long pts = calculatePts(frame, presentTimeUs);
+      queuebb.offer( ByteBuffer.wrap(frame.getBuffer()));
+//      mediaCodec.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     } catch (NullPointerException | IndexOutOfBoundsException e) {
-      Log.i(TAG, "Encoding error", e);
+      //Log.i(TAG, "Encoding error", e);
     }
   }
 
   protected abstract void checkBuffer(@NotNull ByteBuffer byteBuffer,
-      @NotNull MediaCodec.BufferInfo bufferInfo);
+      @NotNull MediaBufferInfo bufferInfo);
 
   protected abstract void sendBuffer(@NotNull ByteBuffer byteBuffer,
-      @NotNull MediaCodec.BufferInfo bufferInfo);
+      @NotNull MediaBufferInfo bufferInfo);
 
-  private void processOutput(@NotNull ByteBuffer byteBuffer, @NotNull MediaCodec mediaCodec,
-      int outBufferIndex, @NotNull MediaCodec.BufferInfo bufferInfo) throws IllegalStateException {
+  private void processOutput(@NotNull ByteBuffer byteBuffer,@NotNull MediaBufferInfo bufferInfo) throws IllegalStateException {
     checkBuffer(byteBuffer, bufferInfo);
     sendBuffer(byteBuffer, bufferInfo);
-    mediaCodec.releaseOutputBuffer(outBufferIndex, false);
   }
 
   public void setForce(CodecUtil.Force force) {
@@ -224,63 +166,20 @@ public abstract class BaseEncoder implements EncoderCallback {
   }
 
   @Override
-  public void inputAvailable(@NotNull MediaCodec mediaCodec, int inBufferIndex)
+  public void inputAvailable()
       throws IllegalStateException {
-    ByteBuffer byteBuffer;
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      byteBuffer = mediaCodec.getInputBuffer(inBufferIndex);
-    } else {
-      byteBuffer = mediaCodec.getInputBuffers()[inBufferIndex];
-    }
-    processInput(byteBuffer, mediaCodec, inBufferIndex);
+
+
+    processInput();
   }
 
   @Override
-  public void outputAvailable(@NotNull MediaCodec mediaCodec, int outBufferIndex,
-      @NotNull MediaCodec.BufferInfo bufferInfo) throws IllegalStateException {
+  public void outputAvailable(@NotNull MediaBufferInfo bufferInfo) throws IllegalStateException, InterruptedException {
     ByteBuffer byteBuffer;
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      byteBuffer = mediaCodec.getOutputBuffer(outBufferIndex);
-    } else {
-      byteBuffer = mediaCodec.getOutputBuffers()[outBufferIndex];
-    }
-    processOutput(byteBuffer, mediaCodec, outBufferIndex, bufferInfo);
+      byteBuffer = queuebb.take();
+      //need convert byteBuffer(yuv420) to h264
+
+    processOutput(byteBuffer, bufferInfo);
   }
 
-  @RequiresApi(api = Build.VERSION_CODES.M)
-  private void createAsyncCallback() {
-    callback = new MediaCodec.Callback() {
-      @Override
-      public void onInputBufferAvailable(@NotNull MediaCodec mediaCodec, int inBufferIndex) {
-        try {
-          inputAvailable(mediaCodec, inBufferIndex);
-        } catch (IllegalStateException e) {
-          Log.i(TAG, "Encoding error", e);
-          reloadCodec();
-        }
-      }
-
-      @Override
-      public void onOutputBufferAvailable(@NotNull MediaCodec mediaCodec, int outBufferIndex,
-          @NotNull MediaCodec.BufferInfo bufferInfo) {
-        try {
-          outputAvailable(mediaCodec, outBufferIndex, bufferInfo);
-        } catch (IllegalStateException e) {
-          Log.i(TAG, "Encoding error", e);
-          reloadCodec();
-        }
-      }
-
-      @Override
-      public void onError(@NotNull MediaCodec mediaCodec, @NotNull MediaCodec.CodecException e) {
-        Log.e(TAG, "Error", e);
-      }
-
-      @Override
-      public void onOutputFormatChanged(@NotNull MediaCodec mediaCodec,
-          @NotNull MediaFormat mediaFormat) {
-        formatChanged(mediaCodec, mediaFormat);
-      }
-    };
-  }
 }
