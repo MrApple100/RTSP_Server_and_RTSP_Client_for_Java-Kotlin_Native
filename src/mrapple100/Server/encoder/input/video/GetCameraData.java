@@ -16,7 +16,8 @@
 
 package mrapple100.Server.encoder.input.video;
 
-import com.pedro.encoder.Frame;
+
+import mrapple100.Server.encoder.Frame;
 
 /**
  * Created by pedro on 20/01/17.

@@ -58,6 +58,18 @@ import com.pedro.rtplibrary.view.GlInterface;
 import com.pedro.rtplibrary.view.LightOpenGlView;
 import com.pedro.rtplibrary.view.OffScreenGlThread;
 import com.pedro.rtplibrary.view.OpenGlView;
+import mrapple100.Server.MediaBufferInfo;
+import mrapple100.Server.encoder.Frame;
+import mrapple100.Server.encoder.input.video.Camera1ApiManager;
+import mrapple100.Server.encoder.input.video.CameraCallbacks;
+import mrapple100.Server.encoder.input.video.CameraHelper;
+import mrapple100.Server.encoder.input.video.GetCameraData;
+import mrapple100.Server.encoder.utils.CodecUtil;
+import mrapple100.Server.encoder.video.FormatVideoEncoder;
+import mrapple100.Server.encoder.video.GetVideoData;
+import mrapple100.Server.encoder.video.VideoEncoder;
+import mrapple100.Server.rtplibrary.util.FpsListener;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -77,106 +89,36 @@ import java.util.List;
  */
 
 public abstract class Camera1Base
-    implements GetAacData, GetCameraData, GetVideoData, GetMicrophoneData {
+    implements GetCameraData, GetVideoData {
 
   private static final String TAG = "Camera1Base";
 
-  private final Context context;
-  private final Camera1ApiManager cameraManager;
+  private final GetCameraData getCameraData;
   protected VideoEncoder videoEncoder;
-  private MicrophoneManager microphoneManager;
-  private AudioEncoder audioEncoder;
-  private GlInterface glInterface;
   private boolean streaming = false;
   protected boolean audioInitialized = false;
   private boolean onPreview = false;
-  protected BaseRecordController recordController;
   private int previewWidth, previewHeight;
   private final FpsListener fpsListener = new FpsListener();
 
-  public Camera1Base(SurfaceView surfaceView) {
-    context = surfaceView.getContext();
-    cameraManager = new Camera1ApiManager(surfaceView, this);
+  public Camera1Base() {
+    cameraManager = new Camera1ApiManager(this);
     init();
   }
 
-  public Camera1Base(TextureView textureView) {
-    context = textureView.getContext();
-    cameraManager = new Camera1ApiManager(textureView, this);
-    init();
-  }
 
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-  public Camera1Base(OpenGlView openGlView) {
-    context = openGlView.getContext();
-    this.glInterface = openGlView;
-    this.glInterface.init();
-    cameraManager = new Camera1ApiManager(glInterface.getSurfaceTexture(), context);
-    init();
-  }
 
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-  public Camera1Base(LightOpenGlView lightOpenGlView) {
-    context = lightOpenGlView.getContext();
-    this.glInterface = lightOpenGlView;
-    this.glInterface.init();
-    cameraManager = new Camera1ApiManager(glInterface.getSurfaceTexture(), context);
-    init();
-  }
-
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-  public Camera1Base(Context context) {
-    this.context = context;
-    glInterface = new OffScreenGlThread(context);
-    glInterface.init();
-    cameraManager = new Camera1ApiManager(glInterface.getSurfaceTexture(), context);
-    init();
-  }
 
   private void init() {
     videoEncoder = new VideoEncoder(this);
-    setMicrophoneMode(MicrophoneMode.ASYNC);
-    recordController = new AndroidMuxerRecordController();
   }
 
-  /**
-   * Must be called before prepareAudio.
-   *
-   * @param microphoneMode mode to work accord to audioEncoder. By default ASYNC:
-   * SYNC using same thread. This mode could solve choppy audio or audio frame discarded.
-   * ASYNC using other thread.
-   */
-  public void setMicrophoneMode(MicrophoneMode microphoneMode) {
-    switch (microphoneMode) {
-      case SYNC:
-        microphoneManager = new MicrophoneManagerManual();
-        audioEncoder = new AudioEncoder(this);
-        audioEncoder.setGetFrame(((MicrophoneManagerManual) microphoneManager).getGetFrame());
-        audioEncoder.setTsModeBuffer(false);
-        break;
-      case ASYNC:
-        microphoneManager = new MicrophoneManager(this);
-        audioEncoder = new AudioEncoder(this);
-        audioEncoder.setTsModeBuffer(false);
-        break;
-      case BUFFER:
-        microphoneManager = new MicrophoneManager(this);
-        audioEncoder = new AudioEncoder(this);
-        audioEncoder.setTsModeBuffer(true);
-        break;
-    }
-  }
+
 
   public void setCameraCallbacks(CameraCallbacks callbacks) {
     cameraManager.setCameraCallbacks(callbacks);
   }
 
-  /**
-   * Set an audio effect modifying microphone's PCM buffer.
-   */
-  public void setCustomAudioEffect(CustomAudioEffect customAudioEffect) {
-    microphoneManager.setCustomAudioEffect(customAudioEffect);
-  }
 
   /**
    * @param callback get fps while record or stream
@@ -280,8 +222,7 @@ public abstract class Camera1Base
       stopPreview();
       onPreview = true;
     }
-    FormatVideoEncoder formatVideoEncoder =
-        glInterface == null ? FormatVideoEncoder.YUV420Dynamical : FormatVideoEncoder.SURFACE;
+    FormatVideoEncoder formatVideoEncoder = FormatVideoEncoder.YUV420Dynamical;
     return videoEncoder.prepareVideoEncoder(width, height, fps, bitrate, rotation, iFrameInterval,
         formatVideoEncoder, avcProfile, avcProfileLevel);
   }
@@ -298,46 +239,6 @@ public abstract class Camera1Base
     return prepareVideo(width, height, fps, bitrate, 0, rotation);
   }
 
-  public boolean prepareVideo(int width, int height, int bitrate) {
-    int rotation = CameraHelper.getCameraOrientation(context);
-    return prepareVideo(width, height, 30, bitrate, 0, rotation);
-  }
-
-  protected abstract void prepareAudioRtp(boolean isStereo, int sampleRate);
-
-  /**
-   * Call this method before use @startStream. If not you will do a stream without audio.
-   *
-   * @param bitrate AAC in kb.
-   * @param sampleRate of audio in hz. Can be 8000, 16000, 22500, 32000, 44100.
-   * @param isStereo true if you want Stereo audio (2 audio channels), false if you want Mono audio
-   * (1 audio channel).
-   * @param echoCanceler true enable echo canceler, false disable.
-   * @param noiseSuppressor true enable noise suppressor, false  disable.
-   * @return true if success, false if you get a error (Normally because the encoder selected
-   * doesn't support any configuration seated or your device hasn't a AAC encoder).
-   */
-  public boolean prepareAudio(int audioSource, int bitrate, int sampleRate, boolean isStereo, boolean echoCanceler,
-      boolean noiseSuppressor) {
-     if (!microphoneManager.createMicrophone(audioSource, sampleRate, isStereo, echoCanceler, noiseSuppressor)) {
-       return false;
-     }
-    prepareAudioRtp(isStereo, sampleRate);
-    audioInitialized = audioEncoder.prepareAudioEncoder(bitrate, sampleRate, isStereo,
-        microphoneManager.getMaxInputSize());
-    return audioInitialized;
-  }
-
-  public boolean prepareAudio(int bitrate, int sampleRate, boolean isStereo, boolean echoCanceler,
-      boolean noiseSuppressor) {
-    return prepareAudio(MediaRecorder.AudioSource.DEFAULT, bitrate, sampleRate, isStereo, echoCanceler,
-        noiseSuppressor);
-  }
-
-  public boolean prepareAudio(int bitrate, int sampleRate, boolean isStereo) {
-    return prepareAudio(bitrate, sampleRate, isStereo, false, false);
-  }
-
   /**
    * Same to call: rotation = 0; if (Portrait) rotation = 90; prepareVideo(640, 480, 30, 1200 *
    * 1024, false, rotation);
@@ -346,19 +247,11 @@ public abstract class Camera1Base
    * doesn't support any configuration seated or your device hasn't a H264 encoder).
    */
   public boolean prepareVideo() {
-    int rotation = CameraHelper.getCameraOrientation(context);
-    return prepareVideo(1920, 1080, 30, 1024*8000, rotation);
+   // int rotation = CameraHelper.getCameraOrientation(context);
+    return prepareVideo(1920, 1080, 30, 1024*8000, 0);
   }
 
-  /**
-   * Same to call: prepareAudio(64 * 1024, 32000, true, false, false);
-   *
-   * @return true if success, false if you get a error (Normally because the encoder selected
-   * doesn't support any configuration seated or your device hasn't a AAC encoder).
-   */
-  public boolean prepareAudio() {
-    return prepareAudio(64 * 1024, 32000, true, false, false);
-  }
+
 
   /**
    * @param forceVideo force type codec used. FIRST_COMPATIBLE_FOUND, SOFTWARE, HARDWARE
@@ -366,29 +259,6 @@ public abstract class Camera1Base
    */
   public void setForce(CodecUtil.Force forceVideo, CodecUtil.Force forceAudio) {
     videoEncoder.setForce(forceVideo);
-    audioEncoder.setForce(forceAudio);
-  }
-
-  /**
-   * Starts recording a MP4 video.
-   *
-   * @param path Where file will be saved.
-   * @throws IOException If initialized before a stream.
-   */
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-  public void startRecord(@NonNull final String path, @Nullable RecordController.Listener listener)
-      throws IOException {
-    recordController.startRecord(path, listener);
-    if (!streaming) {
-      startEncoders();
-    } else if (videoEncoder.isRunning()) {
-      requestKeyFrame();
-    }
-  }
-
-  @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR2)
-  public void startRecord(@NonNull final String path) throws IOException {
-    startRecord(path, null);
   }
 
   /**
@@ -412,6 +282,7 @@ public abstract class Camera1Base
   public void startRecord(@NonNull final FileDescriptor fd) throws IOException {
     startRecord(fd, null);
   }
+
 
   /**
    * Stop record MP4 video started with @startRecord. If you don't call it file will be unreadable.
@@ -799,23 +670,6 @@ public abstract class Camera1Base
 
   public abstract void resizeCache(int newSize) throws RuntimeException;
 
-  public abstract int getCacheSize();
-
-  public abstract long getSentAudioFrames();
-
-  public abstract long getSentVideoFrames();
-
-  public abstract long getDroppedAudioFrames();
-
-  public abstract long getDroppedVideoFrames();
-
-  public abstract void resetSentAudioFrames();
-
-  public abstract void resetSentVideoFrames();
-
-  public abstract void resetDroppedAudioFrames();
-
-  public abstract void resetDroppedVideoFrames();
 
   /**
    * Get supported preview resolutions of back camera in px.
@@ -839,30 +693,6 @@ public abstract class Camera1Base
     return cameraManager.getSupportedFps();
   }
 
-  /**
-   * Set a custom size of audio buffer input.
-   * If you set 0 or less you can disable it to use library default value.
-   * Must be called before of prepareAudio method.
-   *
-   * @param size in bytes. Recommended multiple of 1024 (2048, 4096, 8196, etc)
-   */
-  public void setAudioMaxInputSize(int size) {
-    microphoneManager.setMaxInputSize(size);
-  }
-
-  /**
-   * Mute microphone, can be called before, while and after stream.
-   */
-  public void disableAudio() {
-    microphoneManager.mute();
-  }
-
-  /**
-   * Enable a muted microphone, can be called before, while and after stream.
-   */
-  public void enableAudio() {
-    microphoneManager.unMute();
-  }
 
   /**
    * Get mute state of microphone.
@@ -889,54 +719,7 @@ public abstract class Camera1Base
     return videoEncoder.getHeight();
   }
 
-  /**
-   * Switch camera used. Can be called anytime
-   *
-   * @throws CameraOpenException If the other camera doesn't support same resolution.
-   */
-  public void switchCamera() throws CameraOpenException {
-    if (isStreaming() || isRecording() || onPreview) {
-      cameraManager.switchCamera();
-    } else {
-      cameraManager.setCameraFacing(getCameraFacing() ==  CameraHelper.Facing.FRONT ? CameraHelper.Facing.BACK : CameraHelper.Facing.FRONT);
-    }
-  }
 
-  public void switchCamera(int cameraId) throws CameraOpenException {
-    if (isStreaming() || onPreview) {
-      cameraManager.switchCamera(cameraId);
-    } else {
-      cameraManager.setCameraSelect(cameraId);
-    }
-  }
-
-  public void setExposure(int value) {
-    cameraManager.setExposure(value);
-  }
-
-  public int getExposure() {
-    return cameraManager.getExposure();
-  }
-
-  public int getMaxExposure() {
-    return cameraManager.getMaxExposure();
-  }
-
-  public int getMinExposure() {
-    return cameraManager.getMinExposure();
-  }
-
-  public void tapToFocus(View view, MotionEvent event) {
-    cameraManager.tapToFocus(view, event);
-  }
-
-  public GlInterface getGlInterface() {
-    if (glInterface != null) {
-      return glInterface;
-    } else {
-      throw new RuntimeException("You can't do it. You are not using Opengl");
-    }
-  }
 
   /**
    * Set video bitrate of H264 in bits per second while stream.
@@ -976,36 +759,7 @@ public abstract class Camera1Base
     return onPreview;
   }
 
-  /**
-   * Get record state.
-   *
-   * @return true if recording, false if not recoding.
-   */
-  public boolean isRecording() {
-    return recordController.isRunning();
-  }
 
-  public void pauseRecord() {
-    recordController.pauseRecord();
-  }
-
-  public void resumeRecord() {
-    recordController.resumeRecord();
-  }
-
-  public RecordController.Status getRecordStatus() {
-    return recordController.getStatus();
-  }
-
-  protected abstract void getAacDataRtp(ByteBuffer aacBuffer, MediaCodec.BufferInfo info);
-
-  @Override
-  public void getAacData(ByteBuffer aacBuffer, MediaCodec.BufferInfo info) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-      recordController.recordAudio(aacBuffer, info);
-    }
-    if (streaming) getAacDataRtp(aacBuffer, info);
-  }
 
   protected abstract void onSpsPpsVpsRtp(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps);
 
@@ -1014,20 +768,13 @@ public abstract class Camera1Base
     onSpsPpsVpsRtp(sps.duplicate(), pps.duplicate(), vps != null ? vps.duplicate() : null);
   }
 
-  protected abstract void getH264DataRtp(ByteBuffer h264Buffer, MediaCodec.BufferInfo info);
+  protected abstract void getH264DataRtp(ByteBuffer h264Buffer, MediaBufferInfo info);
 
   @Override
-  public void getVideoData(ByteBuffer h264Buffer, MediaCodec.BufferInfo info) {
+  public void getVideoData(ByteBuffer h264Buffer, MediaBufferInfo info) {
     fpsListener.calculateFps();
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-      recordController.recordVideo(h264Buffer, info);
-    }
-    if (streaming) getH264DataRtp(h264Buffer, info);
-  }
 
-  @Override
-  public void inputPCMData(Frame frame) {
-    audioEncoder.inputPCMData(frame);
+    if (streaming) getH264DataRtp(h264Buffer, info);
   }
 
   @Override
@@ -1035,19 +782,8 @@ public abstract class Camera1Base
     videoEncoder.inputYUVData(frame);
   }
 
-  @Override
-  public void onVideoFormat(MediaFormat mediaFormat) {
-    recordController.setVideoFormat(mediaFormat, !audioInitialized);
-  }
 
-  @Override
-  public void onAudioFormat(MediaFormat mediaFormat) {
-    recordController.setAudioFormat(mediaFormat);
-  }
 
-  public void setRecordController(BaseRecordController recordController) {
-    if (!isRecording()) this.recordController = recordController;
-  }
 
   public abstract void setLogs(boolean enable);
 
