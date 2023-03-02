@@ -1,5 +1,7 @@
 package mrapple100.Client;
 
+import mrapple100.Server.CustomConnectCheckerRTSP;
+import mrapple100.Server.rtspserver.RtspServerCamera1;
 import mrapple100.Client.rtsp.widget.RtspSurfaceView;
 import mrapple100.utils.FrameSynchronizer;
 
@@ -13,17 +15,26 @@ import java.net.InetAddress;
 import java.net.URI;
 
 public class Client {
+    static RtspServerCamera1 rtspServerCamera1;
+
     static RtspSurfaceView rtcpSurfaceView;
     //GUI
     //----
     JFrame f = new JFrame("mrapple100.Client.Client");
-    JButton playButton = new JButton("Play");
+    JButton playButton = new JButton("Получение");
     JPanel mainPanel = new JPanel();
     JPanel buttonPanel = new JPanel();
     JLabel statLabel1 = new JLabel();
     JLabel statLabel2 = new JLabel();
     JLabel statLabel3 = new JLabel();
     JLabel framePlace = new JLabel();
+
+    JLabel frameAfterPlace = new JLabel();
+    JLabel iplabel = new JLabel();
+    JButton sendButton = new JButton("Раздача");
+
+
+
     ImageIcon icon;
 
     Timer timer; //timer used to receive data from the UDP socket
@@ -59,10 +70,13 @@ public class Client {
         });
 
         //Buttons
-        buttonPanel.setLayout(new GridLayout(1,0));
+        buttonPanel.setLayout(new GridLayout(2,0));
         buttonPanel.add(playButton);
+        buttonPanel.add(sendButton);
 
         playButton.addActionListener(new playButtonListener());
+        sendButton.addActionListener(new sendButtonListener());
+
 
         //Statistics
         statLabel1.setText("Total Bytes Received: 0");
@@ -75,11 +89,16 @@ public class Client {
         //frame layout
         mainPanel.setLayout(null);
         mainPanel.add(framePlace);
+        mainPanel.add(frameAfterPlace);
         mainPanel.add(buttonPanel);
+        mainPanel.add(sendButton);
         mainPanel.add(statLabel1);
         mainPanel.add(statLabel2);
         mainPanel.add(statLabel3);
-        framePlace.setBounds(0,0,1000,1000);
+        mainPanel.add(iplabel);
+        framePlace.setBounds(0,0,800,1000);
+        frameAfterPlace.setBounds(800,0,1000,1000);
+        iplabel.setBounds(1000,900,380,50);
         buttonPanel.setBounds(500,900,380,50);
         statLabel1.setBounds(500,950,380,20);
         statLabel2.setBounds(500,970,380,20);
@@ -125,6 +144,9 @@ public class Client {
 
         url = "rtsp://"+ServerHost+":"+RTSP_server_port+"/"+VideoFileName;
 
+        rtspServerCamera1 = new RtspServerCamera1( new CustomConnectCheckerRTSP(), 1935);
+
+
         //Establish a TCP connection with the server to exchange RTSP messages
         //------------------
         /*System.out.println( theClient.ServerIPAddr.getAddress());
@@ -158,6 +180,27 @@ public class Client {
               //  rtcpSurfaceView.debug = binding.cbDebug.isChecked
                 rtcpSurfaceView.start(true, false);
             }
+        }
+    }
+
+    //Handler for Send button
+    //-----------------------
+    class sendButtonListener implements ActionListener {
+
+        public void actionPerformed(ActionEvent e) {
+
+            if (!rtspServerCamera1.isStreaming()) {
+                if (  rtspServerCamera1.prepareVideo()) {
+                    sendButton.setText("Start_Server");
+                    rtspServerCamera1.startStream();
+                    iplabel.setText(rtspServerCamera1.getEndPointConnection());
+                }
+            } else {
+                sendButton.setText("Stop_Server");
+                rtspServerCamera1.stopStream();
+                iplabel.setText("");
+            }
+
         }
     }
 
