@@ -1,10 +1,11 @@
 
 package mrapple100.Server.rtsp.rtp.packets
 
-import android.media.MediaCodec
-import android.util.Log
+
 import mrapple100.Server.rtsp.rtsp.RtpFrame
-import com.pedro.rtsp.utils.RtpConstants
+import mrapple100.Server.rtsp.utils.RtpConstants
+import mrapple100.Server.MediaBufferInfo
+import mrapple100.utils.MediaCodec
 import java.nio.ByteBuffer
 import kotlin.experimental.and
 
@@ -25,7 +26,7 @@ open class H265Packet(sps: ByteArray, pps: ByteArray, vps: ByteArray, private va
     setSpsPpsVps(sps, pps, vps)
   }
 
-  override fun createAndSendPacket(byteBuffer: ByteBuffer, bufferInfo: MediaCodec.BufferInfo) {
+  override fun createAndSendPacket(byteBuffer: ByteBuffer, bufferInfo: MediaBufferInfo) {
     // We read a NAL units from ByteBuffer and we send them
     // NAL units are preceded with 0x00000001
     byteBuffer.rewind()
@@ -44,7 +45,7 @@ open class H265Packet(sps: ByteArray, pps: ByteArray, vps: ByteArray, private va
         videoPacketCallback.onVideoFrameCreated(rtpFrame)
         sendKeyFrame = true
       } ?: run {
-        Log.i(TAG, "can't create key frame because setSpsPps was not called")
+    //    Log.i(TAG, "can't create key frame because setSpsPps was not called")
       }
     }
     if (sendKeyFrame) {

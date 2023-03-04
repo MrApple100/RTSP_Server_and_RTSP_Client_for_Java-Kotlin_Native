@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.pedro.rtsp.utils
+package mrapple100.Server.rtsp.utils
 
 /**
  * Created by pedro on 10/07/19.

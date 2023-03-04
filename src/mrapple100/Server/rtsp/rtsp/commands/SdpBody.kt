@@ -1,7 +1,7 @@
 
 package mrapple100.Server.rtsp.rtsp.commands
 
-import com.pedro.rtsp.utils.RtpConstants
+import mrapple100.Server.rtsp.utils.RtpConstants
 
 /**
  * Created by pedro on 21/02/17.

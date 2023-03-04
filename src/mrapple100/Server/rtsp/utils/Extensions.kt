@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.pedro.rtsp.utils
+package mrapple100.Server.rtsp.utils
 
-import android.util.Base64
 import java.nio.ByteBuffer
+import java.util.*
 
-fun ByteArray.encodeToString(flags: Int = Base64.NO_WRAP): String {
-  return Base64.encodeToString(this, flags)
+fun ByteArray.encodeToString(): String {
+  return Base64.getEncoder().encodeToString(this)
 }
 
 fun ByteBuffer.getData(): ByteArray {

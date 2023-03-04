@@ -1,9 +1,10 @@
 package com.pedro.rtspserver
 
 
-import com.pedro.rtsp.utils.ConnectCheckerRtsp
-import com.pedro.rtsp.utils.RtpConstants
+import mrapple100.Server.rtsp.utils.ConnectCheckerRtsp
+import mrapple100.Server.rtsp.utils.RtpConstants
 import mrapple100.Server.MediaBufferInfo
+import mrapple100.Server.rtspserver.ClientListener
 import mrapple100.Server.rtspserver.ServerClient
 import java.io.*
 import java.net.*
@@ -20,7 +21,7 @@ import java.util.concurrent.TimeUnit
  */
 
 open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
-  val port: Int): ClientListener {
+                      val port: Int): ClientListener {
 
   private val TAG = "RtspServer"
   private var server: ServerSocket? = null
@@ -63,6 +64,7 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
         server = ServerSocket(port)
       } catch (e: IOException) {
         connectCheckerRtsp.onConnectionFailedRtsp("Server creation failed")
+        println(e)
       //  Log.e(TAG, "Error", e)
         return@Thread
       }
@@ -84,10 +86,14 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
             clients.add(client)
           }
         } catch (e: SocketException) {
+          println(e)
+
           // server.close called
           break
         } catch (e: IOException) {
-        //  Log.e(TAG, "Error", e)
+          println(e)
+
+          //  Log.e(TAG, "Error", e)
           continue
         }
       }
@@ -154,15 +160,15 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
     }
   }
 
-  fun sendAudio(aacBuffer: ByteBuffer, info: MediaBufferInfo) {
-    synchronized(clients) {
-      clients.forEach {
-        if (it.isAlive && it.canSend && !it.commandsManager.audioDisabled) {
-          it.rtspSender.sendAudioFrame(aacBuffer.duplicate(), info)
-        }
-      }
-    }
-  }
+//  fun sendAudio(aacBuffer: ByteBuffer, info: MediaBufferInfo) {
+//    synchronized(clients) {
+//      clients.forEach {
+//        if (it.isAlive && it.canSend && !it.commandsManager.audioDisabled) {
+//          it.rtspSender.sendAudioFrame(aacBuffer.duplicate(), info)
+//        }
+//      }
+//    }
+//  }
 
   fun setVideoInfo(sps: ByteBuffer, pps: ByteBuffer, vps: ByteBuffer?) {
     this.sps = sps
