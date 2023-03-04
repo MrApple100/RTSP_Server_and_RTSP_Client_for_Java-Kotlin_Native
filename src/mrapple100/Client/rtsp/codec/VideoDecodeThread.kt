@@ -1,7 +1,9 @@
 package mrapple100.Client.rtsp.codec
 
 import mrapple100.Server.encoder.Frame
+import mrapple100.Server.encoder.utils.yuv.YUVUtil
 import mrapple100.Server.encoder.video.VideoEncoder
+import mrapple100.Server.rtsp.utils.getData
 import mrapple100.Server.rtspserver.RtspServerCamera1
 import mrapple100.utils.ByteUtils
 import org.bytedeco.ffmpeg.avcodec.AVCodec
@@ -10,6 +12,7 @@ import org.bytedeco.ffmpeg.avcodec.AVPacket
 import org.bytedeco.ffmpeg.avutil.AVDictionary
 import org.bytedeco.ffmpeg.avutil.AVFrame
 import org.bytedeco.ffmpeg.global.avcodec
+import org.bytedeco.ffmpeg.global.avcodec.av_packet_unref
 import org.bytedeco.ffmpeg.global.avutil
 import org.bytedeco.ffmpeg.global.swscale
 import org.bytedeco.ffmpeg.swscale.SwsContext
@@ -32,7 +35,7 @@ import javax.swing.JLabel
 
 class VideoDecodeThread (
     private val framePlace: JLabel,
-    private val RtspServer:RtspServerCamera1,
+    private val rtspServer:RtspServerCamera1,
     private val videoFrameQueue: FrameQueue
     ) : Thread() {
     var spspps: ByteArray? = null;
@@ -99,20 +102,11 @@ class VideoDecodeThread (
                                 //////////////////////////////////////////////////////////////////////////
 
 
-//                    if (codec.capabilities()>0 && AV_CODEC_CAP_TRUNCATED>0 ) {
-//                        context.flags(context.flags() or AV_CODEC_CAP_TRUNCATED)
-//                        println("set flags")
-//                    }
-
-
 
                                 avcodec.avcodec_open2(context, codec, opts)
 
-
-
-
                                 // }
-                                avcodec.av_packet_unref(packet)
+                                av_packet_unref(packet)
                                 val framepointer = BytePointer(bb)
 
                               //  println("ADDRESSCONTEXT " + "${context.address()}")
@@ -199,16 +193,22 @@ class VideoDecodeThread (
 
 
                                     //convert rgb to yuv
-                                    val iplImage: IplImage = IplImage.create(context.width(), context.height(), opencv_core.IPL_DEPTH_8U, 3)
-                                    var data = BytePointer(iplImage.imageData())
-                                    var bytes = output.clone()
-                                    data.get(bytes)
-                                    opencv_imgproc.cvCvtColor(iplImage, iplImage, opencv_imgproc.CV_RGB2YUV)
+                                    //println("${context.width()} ${ context.height()}")
+                                    if(rtspServer.isStreaming) {
+                                        rtspServer.getFrameAfterPlace().icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(600,800, Image.SCALE_DEFAULT))
+//                                        val iplImage: IplImage = IplImage.create(context.width(), context.height(), opencv_core.IPL_DEPTH_8U, 3)
+//                                        var data = BytePointer(iplImage.imageData())
+//                                        var bytes = output.clone()
+//                                        data.get(bytes)
+//                                        opencv_imgproc.cvCvtColor(iplImage, iplImage, opencv_imgproc.CV_RGB2YUV)
+                                        val yuv420 = YUVUtil.convertRgbToYuv420(output,context.width(),context.height())
 
-                                    RtspServer.inputYUVData(Frame(ByteUtils.iplImageToByteArray(iplImage),0,0))
+                                        rtspServer.inputYUVData(Frame(yuv420, 0, 0))
+                                        //iplImage.deallocate()
+                                    }
 
                                     // }
-//                    av_packet_unref(packet)
+                    av_packet_unref(packet)
 //                    avcodec_close(context)
 //                    avcodec_free_context(context)
 //
