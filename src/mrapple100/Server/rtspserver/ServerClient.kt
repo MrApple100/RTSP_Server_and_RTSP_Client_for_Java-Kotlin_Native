@@ -3,9 +3,7 @@ package mrapple100.Server.rtspserver
 import mrapple100.Server.rtsp.rtsp.Protocol
 import mrapple100.Server.rtsp.rtsp.RtspSender
 import mrapple100.Server.rtsp.rtsp.commands.Method
-import com.pedro.rtsp.utils.ConnectCheckerRtsp
-import com.pedro.rtspserver.ClientListener
-import com.pedro.rtspserver.ServerCommandManager
+import mrapple100.Server.rtsp.utils.ConnectCheckerRtsp
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.InputStreamReader
@@ -15,10 +13,10 @@ import java.net.SocketException
 import java.nio.ByteBuffer
 
 open class ServerClient(private val socket: Socket, serverIp: String, serverPort: Int,
-  private val connectCheckerRtsp: ConnectCheckerRtsp, clientAddress: String, sps: ByteBuffer?,
-  pps: ByteBuffer?, vps: ByteBuffer?, sampleRate: Int, isStereo: Boolean,
-  videoDisabled: Boolean, audioDisabled: Boolean, user: String?, password: String?,
-  private val listener: ClientListener) : Thread() {
+                        private val connectCheckerRtsp: ConnectCheckerRtsp, clientAddress: String, sps: ByteBuffer?,
+                        pps: ByteBuffer?, vps: ByteBuffer?, sampleRate: Int, isStereo: Boolean,
+                        videoDisabled: Boolean, audioDisabled: Boolean, user: String?, password: String?,
+                        private val listener: ClientListener) : Thread() {
 
   private val TAG = "Client"
   private val output = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
@@ -40,7 +38,9 @@ open class ServerClient(private val socket: Socket, serverIp: String, serverPort
 
   override fun run() {
     super.run()
-   // Log.i(TAG, "New client ${commandsManager.clientIp}")
+    println("New client ${commandsManager.clientIp}")
+
+    // Log.i(TAG, "New client ${commandsManager.clientIp}")
     while (!interrupted()) {
       try {
         val request = commandsManager.getRequest(input)
@@ -51,42 +51,44 @@ open class ServerClient(private val socket: Socket, serverIp: String, serverPort
           continue
         }
         val response = commandsManager.createResponse(request.method, request.text, cSeq)
-      //  Log.i(TAG, response)
+        println(response)
         output.write(response)
         output.flush()
 
         if (request.method == Method.PLAY) {
-       //   Log.i(TAG, "Protocol ${commandsManager.protocol}")
+          println("Protocol ${commandsManager.protocol}")
+
+          //   Log.i(TAG, "Protocol ${commandsManager.protocol}")
           rtspSender.setSocketsInfo(commandsManager.protocol, commandsManager.videoServerPorts,
               commandsManager.audioServerPorts)
           if (!commandsManager.videoDisabled) {
             rtspSender.setVideoInfo(commandsManager.sps!!, commandsManager.pps!!, commandsManager.vps)
           }
-          if (!commandsManager.audioDisabled) {
-            rtspSender.setAudioInfo(commandsManager.sampleRate)
-          }
+
           rtspSender.setDataStream(socket.getOutputStream(), commandsManager.clientIp)
           if (commandsManager.protocol == Protocol.UDP) {
             if (!commandsManager.videoDisabled) {
               rtspSender.setVideoPorts(commandsManager.videoPorts[0], commandsManager.videoPorts[1])
             }
-            if (!commandsManager.audioDisabled) {
-              rtspSender.setAudioPorts(commandsManager.audioPorts[0], commandsManager.audioPorts[1])
-            }
+
           }
           rtspSender.start()
           connectCheckerRtsp.onConnectionSuccessRtsp()
           canSend = true
         } else if (request.method == Method.TEARDOWN) {
+          println("Client disconnected")
         //  Log.i(TAG, "Client disconnected")
           listener.onDisconnected(this)
         }
       } catch (e: SocketException) { // Client has left
+        println(e)
       //  Log.e(TAG, "Client disconnected", e)
         listener.onDisconnected(this)
         break
       } catch (e: Exception) {
-     //   Log.e(TAG, "Unexpected error", e)
+        println(e)
+
+        //   Log.e(TAG, "Unexpected error", e)
       }
     }
   }

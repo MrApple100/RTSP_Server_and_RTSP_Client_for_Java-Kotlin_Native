@@ -685,7 +685,7 @@ public class RtspClient {
                 byte[] nalUnit = videoParser.processRtpPacketAndGetNalUnit(data, header.payloadSize);
                 if (nalUnit != null) {
                     byte type = VideoCodecUtils.getH264NalUnitType(nalUnit, 0, nalUnit.length);
-                    System.out.println("NAL u: " + VideoCodecUtils.getH264NalUnitTypeString(type));
+                   // System.out.println("NAL u: " + VideoCodecUtils.getH264NalUnitTypeString(type));
                     switch (type) {
                         case VideoCodecUtils.NAL_SPS:
                             nalUnitSps = nalUnit;

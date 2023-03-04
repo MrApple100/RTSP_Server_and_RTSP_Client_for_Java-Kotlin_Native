@@ -21,9 +21,10 @@ public class Client {
     //GUI
     //----
     JFrame f = new JFrame("mrapple100.Client.Client");
-    JButton playButton = new JButton("Получение");
+    JButton playButton = new JButton("Receive");
     JPanel mainPanel = new JPanel();
     JPanel buttonPanel = new JPanel();
+    JPanel buttonPanel2 = new JPanel();
     JLabel statLabel1 = new JLabel();
     JLabel statLabel2 = new JLabel();
     JLabel statLabel3 = new JLabel();
@@ -31,7 +32,7 @@ public class Client {
 
     JLabel frameAfterPlace = new JLabel();
     JLabel iplabel = new JLabel();
-    JButton sendButton = new JButton("Раздача");
+    JButton sendButton = new JButton("Send");
 
 
 
@@ -70,9 +71,10 @@ public class Client {
         });
 
         //Buttons
-        buttonPanel.setLayout(new GridLayout(2,0));
+        buttonPanel.setLayout(new GridLayout(1,0));
         buttonPanel.add(playButton);
-        buttonPanel.add(sendButton);
+        buttonPanel2.setLayout(new GridLayout(1,0));
+        buttonPanel2.add(sendButton);
 
         playButton.addActionListener(new playButtonListener());
         sendButton.addActionListener(new sendButtonListener());
@@ -91,15 +93,19 @@ public class Client {
         mainPanel.add(framePlace);
         mainPanel.add(frameAfterPlace);
         mainPanel.add(buttonPanel);
-        mainPanel.add(sendButton);
+        mainPanel.add(buttonPanel2);
+
+        // mainPanel.add(sendButton);
         mainPanel.add(statLabel1);
         mainPanel.add(statLabel2);
         mainPanel.add(statLabel3);
         mainPanel.add(iplabel);
-        framePlace.setBounds(0,0,800,1000);
-        frameAfterPlace.setBounds(800,0,1000,1000);
+        framePlace.setBounds(0,0,500,1000);
+        frameAfterPlace.setBounds(800,0,500,1000);
         iplabel.setBounds(1000,900,380,50);
-        buttonPanel.setBounds(500,900,380,50);
+        buttonPanel.setBounds(200,900,380,50);
+        buttonPanel2.setBounds(600,900,380,50);
+
         statLabel1.setBounds(500,950,380,20);
         statLabel2.setBounds(500,970,380,20);
         statLabel3.setBounds(500,990,380,20);
@@ -128,14 +134,18 @@ public class Client {
     //main
     //------------------------------------
     public static void main(String argv[]) throws Exception {
+
+
         //Create a mrapple100.Client.Client object
         Client theClient = new Client();
-        rtcpSurfaceView = new RtspSurfaceView(theClient.framePlace);
+        rtspServerCamera1 = new RtspServerCamera1(theClient.frameAfterPlace, new CustomConnectCheckerRTSP(), 1935);
+
+        rtcpSurfaceView = new RtspSurfaceView(theClient.framePlace,rtspServerCamera1);
 
         //get server RTSP port and IP address from the command line
         //------------------
                 RTSP_server_port = "1935";
-        ServerHost = "192.168.25.227";
+        ServerHost = "192.168.120.208";
         theClient.ServerIPAddr = InetAddress.getByName(ServerHost);
 
         //get video filename to request:
@@ -144,7 +154,6 @@ public class Client {
 
         url = "rtsp://"+ServerHost+":"+RTSP_server_port+"/"+VideoFileName;
 
-        rtspServerCamera1 = new RtspServerCamera1( new CustomConnectCheckerRTSP(), 1935);
 
 
         //Establish a TCP connection with the server to exchange RTSP messages
@@ -190,10 +199,12 @@ public class Client {
         public void actionPerformed(ActionEvent e) {
 
             if (!rtspServerCamera1.isStreaming()) {
+                System.out.println(rtspServerCamera1.prepareVideo());
                 if (  rtspServerCamera1.prepareVideo()) {
-                    sendButton.setText("Start_Server");
+                    sendButton.setText("Server_is_started!");
                     rtspServerCamera1.startStream();
                     iplabel.setText(rtspServerCamera1.getEndPointConnection());
+                    System.out.println(rtspServerCamera1.getEndPointConnection()+"");
                 }
             } else {
                 sendButton.setText("Stop_Server");

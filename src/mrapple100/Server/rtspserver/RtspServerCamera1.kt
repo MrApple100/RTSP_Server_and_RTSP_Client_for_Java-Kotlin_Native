@@ -2,25 +2,29 @@ package mrapple100.Server.rtspserver
 
 
 import com.pedro.rtsp.rtsp.VideoCodec
-import com.pedro.rtsp.utils.ConnectCheckerRtsp
+import mrapple100.Server.rtsp.utils.ConnectCheckerRtsp
 import com.pedro.rtspserver.RtspServer
 import mrapple100.Server.MediaBufferInfo
 import mrapple100.Server.encoder.utils.CodecUtil
 import mrapple100.Server.rtplibrary.base.Camera1Base
 import java.nio.ByteBuffer
+import javax.swing.JLabel
 
 /**
  * Created by pedro on 13/02/19.
  */
 open class RtspServerCamera1 : Camera1Base {
 
-  private val rtspServer: RtspServer
+    private val frameAfterPlace: JLabel
+    private val rtspServer: RtspServer
 
-  constructor( connectCheckerRtsp: ConnectCheckerRtsp, port: Int) : super() {
-    rtspServer = RtspServer(connectCheckerRtsp, port)
+  constructor(frame:JLabel, connectCheckerRtsp: ConnectCheckerRtsp, port: Int) : super() {
+      frameAfterPlace = frame
+      rtspServer = RtspServer(connectCheckerRtsp, port)
   }
 
 
+fun getFrameAfterPlace():JLabel = frameAfterPlace
 
   fun setVideoCodec(videoCodec: VideoCodec) {
     videoEncoder.type =
@@ -29,7 +33,7 @@ open class RtspServerCamera1 : Camera1Base {
 
   fun getNumClients(): Int = rtspServer.getNumClients()
 
-  fun getEndPointConnection(): String = "rtsp://${rtspServer.serverIp}:${rtspServer.port}/cast/1"
+  fun getEndPointConnection(): String = "rtsp://${rtspServer.serverIp}:${rtspServer.port}/cast/2"
 
   override fun setAuthorization(user: String, password: String) {
     rtspServer.setAuth(user, password)
@@ -66,22 +70,22 @@ open class RtspServerCamera1 : Camera1Base {
   override fun setCheckServerAlive(enable: Boolean) {
   }
 
-  /**
-   * Unused functions
-   */
-  @Throws(RuntimeException::class)
-  override fun resizeCache(newSize: Int) {
-  }
-
-  override fun shouldRetry(reason: String?): Boolean = false
-
-  override fun hasCongestion(): Boolean = rtspServer.hasCongestion()
-
-  override fun setReTries(reTries: Int) {
-  }
-
-  override fun reConnect(delay: Long, backupUrl: String?) {
-  }
+//  /**
+//   * Unused functions
+//   */
+//  @Throws(RuntimeException::class)
+//  override fun resizeCache(newSize: Int) {
+//  }
+//
+//  override fun shouldRetry(reason: String?): Boolean = false
+//
+//  override fun hasCongestion(): Boolean = rtspServer.hasCongestion()
+//
+//  override fun setReTries(reTries: Int) {
+//  }
+//
+//  override fun reConnect(delay: Long, backupUrl: String?) {
+//  }
 
    fun getCacheSize(): Int = 0
 
