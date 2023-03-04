@@ -1,8 +1,8 @@
 
 package mrapple100.Server.rtsp.rtp.packets
 
-import com.pedro.rtsp.utils.RtpConstants
-import com.pedro.rtsp.utils.setLong
+import mrapple100.Server.rtsp.utils.RtpConstants
+import mrapple100.Server.rtsp.utils.setLong
 import mrapple100.Server.MediaBufferInfo
 import java.nio.ByteBuffer
 import kotlin.experimental.and

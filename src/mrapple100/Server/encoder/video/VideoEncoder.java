@@ -16,24 +16,14 @@
 
 package mrapple100.Server.encoder.video;
 
-import com.sun.awt.AWTUtilities;
 import javafx.util.Pair;
 import mrapple100.Server.MediaBufferInfo;
 import mrapple100.Server.encoder.BaseEncoder;
 import mrapple100.Server.encoder.Frame;
 import mrapple100.Server.encoder.input.video.FpsLimiter;
-import mrapple100.Server.encoder.input.video.GetCameraData;
 import mrapple100.Server.encoder.utils.CodecUtil;
 import mrapple100.Server.encoder.utils.yuv.YUVUtil;
-import mrapple100.utils.ByteUtils;
-import org.bytedeco.ffmpeg.avcodec.AVCodec;
-import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
-import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
-import org.bytedeco.javacpp.BytePointer;
-import org.bytedeco.javacv.FFmpegFrameRecorder;
-import org.bytedeco.opencv.opencv_core.IplImage;
-import org.jcodec.common.model.Picture;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.image.BufferedImage;
@@ -46,9 +36,7 @@ import java.util.List;
 
 import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-import static org.bytedeco.opencv.global.opencv_core.IPL_DEPTH_8U;
-import static org.bytedeco.opencv.global.opencv_imgproc.CV_BGR2YUV;
-import static org.bytedeco.opencv.global.opencv_imgproc.cvCvtColor;
+import static org.bytedeco.ffmpeg.global.avutil.av_opt_set;
 
 /**
  * Created by pedro on 19/01/17.
@@ -63,14 +51,13 @@ public class VideoEncoder extends BaseEncoder {
   //video data necessary to send after requestKeyframe.
   private ByteBuffer oldSps, oldPps, oldVps;
 
-  private int width = 640;
-  private int height = 480;
+  private int width = 1920;
+  private int height = 1080;
   private int fps = 30;
   private int bitRate = 8000 * 1024; //in kbps
   private int rotation = 90;
   private int iFrameInterval = 2;
-  private AVCodec codec;
-  private AVCodecContext c;
+
 
   //for disable video
   private final FpsLimiter fpsLimiter = new FpsLimiter();
@@ -117,6 +104,7 @@ public class VideoEncoder extends BaseEncoder {
     c.gop_size(fps);
     c.max_b_frames(0);
     c.pix_fmt(AV_PIX_FMT_YUV420P);
+    av_opt_set(c.priv_data(),"preset","ultrafast",0);
 
 //     // Log.i(TAG, "Prepare video info: " + this.formatVideoEncoder.name() + ", " + resolution);
 //      videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
@@ -130,8 +118,8 @@ public class VideoEncoder extends BaseEncoder {
       // Removed because this is ignored by most encoders, producing different results on different devices
       //  videoFormat.setInteger(MediaFormat.KEY_ROTATION, rotation);
 
-      this.stop();
-      return false;
+     // this.stop();
+      return true;
 
   }
 
@@ -429,6 +417,7 @@ public static byte[] imageToByteArray(BufferedImage image) {
   @Override
   protected void sendBuffer(@NotNull ByteBuffer byteBuffer,
       @NotNull MediaBufferInfo bufferInfo) {
+    System.out.println("HERE");
     getVideoData.getVideoData(byteBuffer, bufferInfo);
   }
 }

@@ -1,4 +1,4 @@
-package com.pedro.rtspserver
+package mrapple100.Server.rtspserver
 
 import mrapple100.Server.rtspserver.ServerClient
 

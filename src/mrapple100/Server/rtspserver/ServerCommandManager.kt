@@ -1,17 +1,18 @@
-package com.pedro.rtspserver
+package mrapple100.Server.rtspserver
 
-import android.util.Base64
-import android.util.Log
+
 import mrapple100.Server.rtsp.rtsp.Protocol
 import mrapple100.Server.rtsp.rtsp.commands.Command
 import mrapple100.Server.rtsp.rtsp.commands.CommandsManager
 import mrapple100.Server.rtsp.rtsp.commands.Method
 import mrapple100.Server.rtsp.rtsp.commands.SdpBody
-import com.pedro.rtsp.utils.RtpConstants
+import mrapple100.Server.rtsp.utils.RtpConstants
 import java.io.BufferedReader
 import java.io.IOException
 import java.net.SocketException
+import java.util.*
 import java.util.regex.Pattern
+import kotlin.collections.ArrayList
 
 /**
  *
@@ -32,12 +33,12 @@ open class ServerCommandManager(private val serverIp: String, private val server
         if (needAuth()) {
           val auth = getAuth(request)
           val data = "$user:$password"
-          val base64Data = Base64.encodeToString(data.toByteArray(), Base64.DEFAULT)
+          val base64Data = Base64.getEncoder().encodeToString(data.toByteArray())
           if (base64Data.trim() == auth.trim()) {
-            Log.i(TAG, "basic auth success")
+          //  Log.i(TAG, "basic auth success")
             createDescribe(cSeq) // auth accepted
           } else {
-            Log.e(TAG, "basic auth error")
+           // Log.e(TAG, "basic auth error")
             createError(401, cSeq)
           }
         } else {
@@ -100,19 +101,19 @@ open class ServerCommandManager(private val serverIp: String, private val server
       portsMatcher.group(1)?.toInt()?.let { ports.add(it) }
       portsMatcher.group(2)?.toInt()?.let { ports.add(it) }
     } else {
-      Log.e(TAG, "UDP ports not found")
+    //  Log.e(TAG, "UDP ports not found")
       return false
     }
     if (track == RtpConstants.trackAudio) { //audio ports
       audioPorts.clear()
       audioPorts.add(ports[0])
       audioPorts.add(ports[1])
-      Log.i(TAG, "Audio ports: $audioPorts")
+    //  Log.i(TAG, "Audio ports: $audioPorts")
     } else { //video ports
       videoPorts.clear()
       videoPorts.add(ports[0])
       videoPorts.add(ports[1])
-      Log.i(TAG, "Video ports: $videoPorts")
+     // Log.i(TAG, "Video ports: $videoPorts")
     }
     return true
   }
@@ -207,6 +208,6 @@ open class ServerCommandManager(private val serverIp: String, private val server
   }
 
   private fun encodeToString(bytes: ByteArray): String? {
-    return Base64.encodeToString(bytes, 0, bytes.size, Base64.NO_WRAP)
+    return Base64.getEncoder().encodeToString(bytes)
   }
 }
