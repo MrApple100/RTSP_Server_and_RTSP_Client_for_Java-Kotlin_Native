@@ -11,7 +11,7 @@
 //import com.pedro.rtplibrary.view.LightOpenGlView
 //import com.pedro.rtplibrary.view.OpenGlView
 //import com.pedro.rtsp.rtsp.VideoCodec
-//import com.pedro.rtsp.utils.ConnectCheckerRtsp
+//import mrapple100.Server.rtsp.utils.ConnectCheckerRtsp
 //import java.nio.ByteBuffer
 //
 //@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)

@@ -22,7 +22,7 @@ import mrapple100.Server.rtplibrary.base.Camera1Base;
 import mrapple100.Server.rtsp.rtsp.Protocol;
 import mrapple100.Server.rtsp.rtsp.RtspClient;
 import com.pedro.rtsp.rtsp.VideoCodec;
-import com.pedro.rtsp.utils.ConnectCheckerRtsp;
+import mrapple100.Server.rtsp.utils.ConnectCheckerRtsp;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.ByteBuffer;
@@ -46,7 +46,6 @@ public class RtspCamera1 extends Camera1Base {
     rtspClient.setProtocol(protocol);
   }
 
-  @Override
   public void resizeCache(int newSize) throws RuntimeException {
     rtspClient.resizeCache(newSize);
   }
@@ -73,22 +72,19 @@ public class RtspCamera1 extends Camera1Base {
     rtspClient.disconnect();
   }
 
-  @Override
   public void setReTries(int reTries) {
     rtspClient.setReTries(reTries);
   }
 
-  @Override
+
   protected boolean shouldRetry(String reason) {
     return rtspClient.shouldRetry(reason);
   }
 
-  @Override
   public void reConnect(long delay, @Nullable String backupUrl) {
     rtspClient.reConnect(delay, backupUrl);
   }
 
-  @Override
   public boolean hasCongestion() {
     return rtspClient.hasCongestion();
   }

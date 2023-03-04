@@ -17,7 +17,7 @@
 package mrapple100.Server.encoder.input.video;
 
 public interface CameraCallbacks {
-  void onCameraChanged(CameraHelper.Facing facing);
+  void onCameraChanged();
   void onCameraError(String error);
   void onCameraOpened();
   void onCameraDisconnected();
