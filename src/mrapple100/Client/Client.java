@@ -138,7 +138,7 @@ public class Client {
 
         //Create a mrapple100.Client.Client object
         Client theClient = new Client();
-        rtspServerCamera1 = new RtspServerCamera1(theClient.frameAfterPlace, new CustomConnectCheckerRTSP(), 1935);
+        rtspServerCamera1 = new RtspServerCamera1(theClient.frameAfterPlace, new CustomConnectCheckerRTSP(), 1936);
 
         rtcpSurfaceView = new RtspSurfaceView(theClient.framePlace,rtspServerCamera1);
 

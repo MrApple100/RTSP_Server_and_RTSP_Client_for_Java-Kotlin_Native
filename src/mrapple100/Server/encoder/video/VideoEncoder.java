@@ -55,8 +55,8 @@ public class VideoEncoder extends BaseEncoder {
   private int height = 1080;
   private int fps = 30;
   private int bitRate = 8000 * 1024; //in kbps
-  private int rotation = 90;
-  private int iFrameInterval = 2;
+  private int rotation = 0;
+  private int iFrameInterval = 0;
 
 
   //for disable video
@@ -100,11 +100,11 @@ public class VideoEncoder extends BaseEncoder {
     c.bit_rate(bitRate);
     c.width(width);
     c.height(height);
-    c.time_base(new AVRational().num(1).den(fps));
-    c.gop_size(fps);
+    c.time_base().num(1).den(fps);
+    c.gop_size(10);
     c.max_b_frames(0);
     c.pix_fmt(AV_PIX_FMT_YUV420P);
-    av_opt_set(c.priv_data(),"preset","ultrafast",0);
+   // av_opt_set(c.priv_data(),"preset","ultrafast",0);
 
 //     // Log.i(TAG, "Prepare video info: " + this.formatVideoEncoder.name() + ", " + resolution);
 //      videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
@@ -240,8 +240,8 @@ public class VideoEncoder extends BaseEncoder {
     //initial media-writer ffmpeg
 
 
-    if (running && !queue.offer(frame)) {
-     // Log.i(TAG, "frame discarded");
+    if ( !queue.offer(frame)) {
+      System.out.println("frame discarded");
     }
   }
 public static byte[] imageToByteArray(BufferedImage image) {

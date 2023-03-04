@@ -50,6 +50,10 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     protected AVCodec codec;
     protected AVCodecContext c;
+    protected AVPacket packet = new AVPacket();
+    protected AVFrame frame = av_frame_alloc();
+
+
 
     protected static long presentTimeUs;
     protected volatile boolean running = false;
@@ -197,6 +201,8 @@ public abstract class BaseEncoder implements EncoderCallback {
         //need convert byteBuffer(yuv420) to h264
         byte[] h264 = encodeYuvToH264(byteBuffer.array());
         if(h264!=null) {
+            System.out.println(DecodeUtil.byteArrayToHexString(h264));
+
             ByteBuffer bb = ByteBuffer.wrap(h264);
             byteBuffer.rewind();
             processOutput(bb, bufferInfo);
@@ -205,60 +211,155 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     public byte[] encodeYuvToH264(byte[] yuvData) {
 
-        // Открываем кодек
-        System.out.println(yuvData.length);
-        avcodec_open2(c, codec, new AVDictionary());
-        // Создаем структуры данных для YUV420 кадра и H.264 пакета
-        AVFrame yuvFrame = av_frame_alloc();
-        System.out.println(c.width()+" "+c.height());
-        yuvFrame.width(c.width());
-        yuvFrame.height(c.height());
+        ByteBuffer bb = ByteBuffer.wrap(yuvData);
+        bb.rewind();
 
-        yuvFrame.format(AV_PIX_FMT_YUV420P);
-        yuvFrame.pts(0);
-        yuvFrame.data(0, new BytePointer(yuvData));
-        av_frame_get_buffer(yuvFrame,32); //было 32
+        try {
+            //////////////////////////////////////////////////////////////////////////
 
-        System.out.println(yuvFrame.width()+" "+ yuvFrame.height());
-        AVPacket h264Packet = new AVPacket();
-       // h264Packet.size(av_image_get_buffer_size(AV_PIX_FMT_YUV420P, c.width(), c.height(), 1) );
-       // System.out.println(av_image_get_buffer_size(AV_PIX_FMT_YUV420P, c.width(), c.height(), 1));
-        h264Packet.data(null);
-        h264Packet.size(0);
-        av_packet_unref(h264Packet);
+            System.out.println(yuvData.length);
 
-        // Кодируем YUV420 кадр в H.264 пакет
-        int result = avcodec_send_frame(c, yuvFrame);
-        System.out.println(result);
-        if(result<0) {
-            BytePointer ep = new BytePointer(AV_ERROR_MAX_STRING_SIZE);
-            av_make_error_string(ep, AV_ERROR_MAX_STRING_SIZE, result);
-            System.out.println("Can not send frame:" + ep.getString());
-        }
-        while (result == 0) {
-            result = avcodec_receive_packet(c, h264Packet);
-            System.out.println("hello "+result);
-            if(result<0) {
-                BytePointer ep = new BytePointer(AV_ERROR_MAX_STRING_SIZE);
-                av_make_error_string(ep, AV_ERROR_MAX_STRING_SIZE, result);
-                System.out.println("Can not receive frame:" + ep.getString());
+            avcodec_open2(c, codec, new AVDictionary());
+            frame.width(c.width());
+            frame.height(c.height());
+            frame.format(AV_PIX_FMT_YUV420P);
+            av_frame_get_buffer(frame,32); //было 32
+            av_image_fill_arrays(
+                    new PointerPointer<Pointer>(frame),
+                    frame.linesize(),
+                    new BytePointer(yuvData),
+                    AV_PIX_FMT_YUV420P,
+                    c.width(),
+                    c.height(),
+                    1);
+            av_packet_unref(packet);
+            packet.data(new BytePointer());
+            packet.size(yuvData.length*2);
+
+            if(packet==null){
+                System.out.println("Не удалось выделить память для пакета");
             }
 
-            if (result == 0 && (h264Packet.flags() & AV_PKT_FLAG_KEY) == 1) {
-                // Нашли IDR кадр, записываем его в буфер
-                byte[] h264Data = new byte[h264Packet.size()];
-                h264Packet.data().get(h264Data);
-                av_packet_unref(h264Packet);
-                av_frame_unref(yuvFrame);
-                avcodec_close(c);
-                return h264Data;
-            }
+            byte[] h264Bytes = new byte[c.width()* c.height()];
+            int h264Size = 0;
+            int frameCount =0;
+            int ret;
+                ret = av_frame_make_writable(frame);
+                    System.out.println("Make " + ret);
+
+                byte[] y = new byte[yuvData.length * 2 / 3];
+                byte[] u = new byte[yuvData.length / 6];
+                byte[] v = new byte[yuvData.length / 6];
+
+
+                System.arraycopy(yuvData, 0, y, 0, yuvData.length * 2 / 3);
+                System.arraycopy(yuvData, yuvData.length * 2 / 3, u, 0, yuvData.length / 6);
+                System.arraycopy(yuvData, yuvData.length * 5 / 6, v, 0, yuvData.length / 6);
+
+                frame.data(0, new BytePointer(y));
+                frame.data(1, new BytePointer(u));
+                frame.data(2, new BytePointer(v));
+                //  av_packet_unref(packet);
+                //BytePointer framepointer = new BytePointer(bb);
+
+                //  println("ADDRESSCONTEXT " + "${context.address()}")
+                //  println("ADDRESS " + "${framepointer.address()}")
+                // packet.data(framepointer);
+
+
+                //packet.size(yuvData.length);
+                ret = avcodec_send_frame(c, frame);
+                if (ret < 0) {
+                    System.out.println("ERROR SEND " + ret);
+                } else {
+                    //   println("${context.width()} ${context.height()}")
+
+                    //var whileenter = 0;
+                    // while (ret >= 0) {
+                    //  println("OKOKOKOK0")
+                    //  println("codecContext: " + context.slice_count() + " " + context.gop_size() + " " + context.extradata_size() + " " + context.slices() + " " + context.frame_number() + " " + context.extradata() + " " + context.flags())
+
+                    //  println(context.frame_number())
+                    //  println(context)
+                    ret = avcodec_receive_packet(c, packet);
+                    if (ret < 0) {
+                        System.out.println("ERROR RECEIVE " + ret);
+                    }
+                    if (ret == AVERROR_EAGAIN() || ret == AVERROR_EOF()) {
+                        System.out.println(AVERROR_EAGAIN());
+                        System.out.println( AVERROR_EOF());
+                    }
+                }
+
+           // byte[] out = new byte[frame.]
+            BytePointer d = packet.data();
+            byte[] bytes = new byte[packet.size()];
+            d.get(bytes);
+            return bytes;
+        } catch (Exception e) {
+            e.printStackTrace();
+
         }
-        // Если не удалось найти IDR кадр, возвращаем null
-        av_packet_unref(h264Packet);
-        av_frame_unref(yuvFrame);
-        avcodec_close(c);
         return null;
+//        // Открываем кодек
+//        System.out.println(yuvData.length);
+//         ret = avcodec_open2(c, codec, new AVDictionary());
+//        System.out.println("codec "+ret);
+//        // Создаем структуры данных для YUV420 кадра и H.264 пакета
+//        AVFrame yuvFrame = av_frame_alloc();
+//        System.out.println(c.width()+" "+c.height());
+//        yuvFrame.width(c.width());
+//        yuvFrame.height(c.height());
+//
+//        yuvFrame.format(AV_PIX_FMT_YUV420P);
+//        yuvFrame.pts(0);
+//        yuvFrame.data(0, new BytePointer(yuvData));
+//        av_frame_get_buffer(yuvFrame,32); //было 32
+//
+//        System.out.println(yuvFrame.width()+" "+ yuvFrame.height());
+//        AVPacket h264Packet = av_packet_alloc();
+//        if(h264Packet == null) {
+//            throw new IllegalStateException("Unable to initialize video context");
+//        }
+//
+//       // h264Packet.size(av_image_get_buffer_size(AV_PIX_FMT_YUV420P, c.width(), c.height(), 1) );
+//       // System.out.println(av_image_get_buffer_size(AV_PIX_FMT_YUV420P, c.width(), c.height(), 1));
+//        h264Packet.data(null);
+//        h264Packet.size(0);
+//        av_packet_unref(h264Packet);
+//
+//        // Кодируем YUV420 кадр в H.264 пакет
+//        int result = avcodec_send_frame(c, yuvFrame);
+//        System.out.println(result);
+//        if(result<0) {
+//            BytePointer ep = new BytePointer(AV_ERROR_MAX_STRING_SIZE);
+//            av_make_error_string(ep, AV_ERROR_MAX_STRING_SIZE, result);
+//            System.out.println("Can not send frame:" + ep.getString());
+//        }
+//        while (result == 0) {
+//            result = avcodec_receive_packet(c, h264Packet);
+//            System.out.println("hello "+result);
+//            if(result<0) {
+//                BytePointer ep = new BytePointer(AV_ERROR_MAX_STRING_SIZE);
+//                av_make_error_string(ep, AV_ERROR_MAX_STRING_SIZE, result);
+//                System.out.println("Can not receive frame:" + ep.getString());
+//            }
+//
+//            if (result == 0 && (h264Packet.flags() & AV_PKT_FLAG_KEY) == 1) {
+//                // Нашли IDR кадр, записываем его в буфер
+//                byte[] h264Data = new byte[h264Packet.size()];
+//                h264Packet.data().get(h264Data);
+//                av_packet_unref(h264Packet);
+//                av_frame_unref(yuvFrame);
+//                avcodec_close(c);
+//                return h264Data;
+//            }
+//        }
+//        // Если не удалось найти IDR кадр, возвращаем null
+//        av_packet_unref(h264Packet);
+//        av_frame_unref(yuvFrame);
+//        avcodec_close(c);
+//        return null;
     }
 }
 
