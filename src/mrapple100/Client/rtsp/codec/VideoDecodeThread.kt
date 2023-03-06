@@ -3,6 +3,7 @@ package mrapple100.Client.rtsp.codec
 import mrapple100.Server.encoder.Frame
 import mrapple100.Server.encoder.utils.yuv.YUVUtil
 import mrapple100.Server.rtspserver.RtspServerCamera1
+import mrapple100.utils.DecodeUtil
 import org.bytedeco.ffmpeg.avcodec.AVCodec
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext
 import org.bytedeco.ffmpeg.avcodec.AVPacket
@@ -11,8 +12,7 @@ import org.bytedeco.ffmpeg.avutil.AVFrame
 import org.bytedeco.ffmpeg.global.avcodec
 import org.bytedeco.ffmpeg.global.avcodec.av_packet_unref
 import org.bytedeco.ffmpeg.global.avutil
-import org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_RGB24
-import org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P
+import org.bytedeco.ffmpeg.global.avutil.*
 import org.bytedeco.ffmpeg.global.swscale.*
 import org.bytedeco.ffmpeg.swscale.SwsContext
 import org.bytedeco.javacpp.*
@@ -39,11 +39,7 @@ class VideoDecodeThread (
     private val context: AVCodecContext = avcodec.avcodec_alloc_context3(codec);
     private val opts = AVDictionary()
 
-    private val frame: AVFrame = avutil.av_frame_alloc();
-    private val packet: AVPacket = AVPacket()
-    private var swsContext: SwsContext? = null
 
-    val rgbFrame: AVFrame = avutil.av_frame_alloc()
 
 
     private var frameq: FrameQueue.Frame? =null
@@ -75,14 +71,16 @@ class VideoDecodeThread (
                     // if (length > byteBuffer.limit()) throw DecoderFatalException("Error")
 
                     frameq = videoFrameQueue.pop()
-                    if (frame == null) {
+                    if (frameq == null) {
                     //    Log.d(TAG, "Empty video frame")
                         // Release input buffer
                     } else {
                         if(frameq!!.data[4]== "103".toByte()){
                             spspps = frameq!!.data
+                            println("103 "+DecodeUtil.byteArrayToHexString(spspps).subSequence(0,50))
                         }else{
                             val datasrc = frameq!!.data
+                            println("OST "+DecodeUtil.byteArrayToHexString(frameq!!.data).subSequence(0,50))
 
                          //   println(DecodeUtil.byteArrayToHexString(datasrc))
 
@@ -96,7 +94,11 @@ class VideoDecodeThread (
                             try {
                                 //////////////////////////////////////////////////////////////////////////
 
+                                 val frame: AVFrame = avutil.av_frame_alloc();
+                                 val packet: AVPacket = AVPacket()
+                                 var swsContext: SwsContext? = null
 
+                                val rgbFrame: AVFrame = avutil.av_frame_alloc()
 
                                 avcodec.avcodec_open2(context, codec, opts)
 
@@ -188,23 +190,36 @@ class VideoDecodeThread (
 
                                     //convert rgb to yuv
                                     //println("${context.width()} ${ context.height()}")
-                                    if(rtspServer.isStreaming) {
+
+
+
                                         // Пересчитать RGB24 в YUV420
 
 
 // Конвертировать RGB в YUV420
                                       //  println("start")
 
-                                        val swsContext: SwsContext = sws_getContext(context.width(), context.height(), AV_PIX_FMT_RGB24, context.width(), context.height(), AV_PIX_FMT_YUV420P, 0, null, null,  DoublePointer())
+                                    val swsContext2: SwsContext = sws_getContext(context.width(), context.height(), AV_PIX_FMT_RGB24, context.width(), context.height(), AV_PIX_FMT_YUV420P, 0, null, null,  DoublePointer())
                                       //  println("swsContext "+swsContext.address())
                                       //  println("out "+output.size)
-                                        val yuv420 = ByteArray(output.size/2)
-                                        sws_scale(swsContext, PointerPointer<Pointer>(output), IntPointer( context.width()*3), 0, context.height(), PointerPointer<Pointer>(yuv420), IntPointer( context.width(),0,context.height()))
+                                    val yuvFrame: AVFrame = avutil.av_frame_alloc()
+                                    val sizeyuv = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_YUV420P, context.width(), context.height(), 1)
+                                    val bufferyuv: BytePointer = BytePointer(avutil.av_malloc(sizeyuv.toLong()))
+                                    avutil.av_image_fill_arrays(yuvFrame.data(), yuvFrame.linesize(), bufferyuv, avutil.AV_PIX_FMT_YUV420P, context.width(), context.height(), 1)
+
+
+                                   // val yuv420 = ByteArray(output.size/2)
+                                    //val ppOutput = PointerPointer<Pointer>(output)
+                                    //val ppYuv420 = PointerPointer<Pointer>(yuv420)
+                                    sws_scale(swsContext2,rgbFrame.data(),rgbFrame.linesize(),0,context.height(),yuvFrame.data(),yuvFrame.linesize())
+                                    val outputyuv = ByteArray(size)
+                                    buffer.get(outputyuv)
+                                  //  sws_scale(swsContext2, ppOutput, IntPointer( context.width()*3), 0, context.height(), ppYuv420, IntPointer( context.width()))
                                       //  println("swsscale is ok "+ yuv420.size)
 
                                         //sws_freeContext(swsContext);
                                       //  println("yuv "+yuv420.size)
-                                        rtspServer.getFrameAfterPlace().icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(600,800, Image.SCALE_DEFAULT))
+
 //                                        val iplImage: IplImage = IplImage.create(context.width(), context.height(), opencv_core.IPL_DEPTH_8U, 3)
 //                                        var data = BytePointer(iplImage.imageData())
 //                                        var bytes = output.clone()
@@ -212,10 +227,11 @@ class VideoDecodeThread (
 //                                        opencv_imgproc.cvCvtColor(iplImage, iplImage, opencv_imgproc.CV_RGB2YUV)
                                        // val yuv420 = YUVUtil.convertRgbToYuv420(output,context.width(),context.height())
 
-                                        rtspServer.inputYUVData(Frame(yuv420.clone(), 0, 0))
+                                        rtspServer.inputYUVData(rtspServer,Frame(outputyuv, 0, 0))
                                         //iplImage.deallocate()
-                                    }
-
+                                       // sws_freeContext(swsContext2)
+                                   // av_frame_free(frame)
+                                   // av_frame_free(rgbFrame)
                                     // }
                     av_packet_unref(packet)
 //                    avcodec_close(context)
