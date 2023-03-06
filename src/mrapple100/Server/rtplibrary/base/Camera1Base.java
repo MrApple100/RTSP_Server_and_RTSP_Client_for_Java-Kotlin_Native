@@ -24,6 +24,7 @@ import mrapple100.Server.encoder.video.FormatVideoEncoder;
 import mrapple100.Server.encoder.video.GetVideoData;
 import mrapple100.Server.encoder.video.VideoEncoder;
 import mrapple100.Server.rtplibrary.util.FpsListener;
+import mrapple100.Server.rtspserver.RtspServerCamera1;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -199,7 +200,7 @@ public abstract class Camera1Base
    */
   public boolean prepareVideo() {
    // int rotation = CameraHelper.getCameraOrientation(context);
-    return prepareVideo(1920, 1080, 30, 1024*8000, 0);
+    return prepareVideo(640, 480, 30, 1024*1200, 0);
   }
 
 
@@ -369,8 +370,8 @@ public abstract class Camera1Base
   }
 
   @Override
-  public void inputYUVData(Frame frame) {
-    videoEncoder.inputYUVData(frame);
+  public void inputYUVData(RtspServerCamera1 rtspServerCamera1,Frame frame) {
+    videoEncoder.inputYUVData(rtspServerCamera1,frame);
   }
 
 

@@ -17,12 +17,14 @@
 package mrapple100.Server.encoder.video;
 
 import javafx.util.Pair;
+import mrapple100.Server.DecodeUtil;
 import mrapple100.Server.MediaBufferInfo;
 import mrapple100.Server.encoder.BaseEncoder;
 import mrapple100.Server.encoder.Frame;
 import mrapple100.Server.encoder.input.video.FpsLimiter;
 import mrapple100.Server.encoder.utils.CodecUtil;
 import mrapple100.Server.encoder.utils.yuv.YUVUtil;
+import mrapple100.Server.rtspserver.RtspServerCamera1;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,10 +53,10 @@ public class VideoEncoder extends BaseEncoder {
   //video data necessary to send after requestKeyframe.
   private ByteBuffer oldSps, oldPps, oldVps;
 
-  private int width = 1920;
-  private int height = 1080;
+  private int width = 640;
+  private int height = 480;
   private int fps = 30;
-  private int bitRate = 8000 * 1024; //in kbps
+  private int bitRate = 1200 * 1024; //in kbps
   private int rotation = 0;
   private int iFrameInterval = 0;
 
@@ -101,7 +103,7 @@ public class VideoEncoder extends BaseEncoder {
     c.width(width);
     c.height(height);
     c.time_base().num(1).den(fps);
-    c.gop_size(10);
+    c.gop_size(1);
     c.max_b_frames(0);
     c.pix_fmt(AV_PIX_FMT_YUV420P);
    // av_opt_set(c.priv_data(),"preset","ultrafast",0);
@@ -232,13 +234,14 @@ public class VideoEncoder extends BaseEncoder {
   }
 
 //этот метод нужно поместить туда где появляется кадры
-  public void inputYUVData(Frame frame) {
+  public void inputYUVData(RtspServerCamera1 rtspServerCamera1,Frame frame) {
     //initial codec H264
 
     //open codec
     //avcodec_open2(c,codec,new AVDictionary());
     //initial media-writer ffmpeg
 
+    this.rtspServer = rtspServerCamera1;
 
     if ( !queue.offer(frame)) {
       System.out.println("frame discarded");
@@ -383,13 +386,17 @@ public static byte[] imageToByteArray(BufferedImage image) {
 
     fixTimeStamp(bufferInfo);
     if (!spsPpsSetted && type.equals(CodecUtil.H264_MIME)) {
-     // Log.i(TAG, "formatChanged not called, doing manual sps/pps extraction...");
-      Pair<ByteBuffer, ByteBuffer> buffers = decodeSpsPpsFromBuffer(byteBuffer.duplicate(), bufferInfo.size);
+      System.out.println("formatChanged not called, doing manual sps/pps extraction..."+bufferInfo.toString());
+
+      Pair<ByteBuffer, ByteBuffer> buffers = decodeSpsPpsFromBuffer(byteBuffer.duplicate(), byteBuffer.array().length);
       if (buffers != null) {
-       // Log.i(TAG, "manual sps/pps extraction success");
+        System.out.println("manual sps/pps extraction success");
         oldSps = buffers.getKey();
         oldPps = buffers.getValue();
         oldVps = null;
+       // System.out.println("SPS "+DecodeUtil.byteArrayToHexString(oldSps.array()));
+       // System.out.println("PPS "+DecodeUtil.byteArrayToHexString(oldPps.array()));
+
         getVideoData.onSpsPpsVps(oldSps, oldPps, oldVps);
         spsPpsSetted = true;
       } else {
@@ -417,7 +424,7 @@ public static byte[] imageToByteArray(BufferedImage image) {
   @Override
   protected void sendBuffer(@NotNull ByteBuffer byteBuffer,
       @NotNull MediaBufferInfo bufferInfo) {
-    System.out.println("HERE");
+    //System.out.println("HERE");
     getVideoData.getVideoData(byteBuffer, bufferInfo);
   }
 }
