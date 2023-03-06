@@ -14,4 +14,13 @@ public final class MediaBufferInfo {
             throw new RuntimeException("Stub!");
         }
 
+    @Override
+    public String toString() {
+        return "MediaBufferInfo{" +
+                "flags=" + flags +
+                ", offset=" + offset +
+                ", presentationTimeUs=" + presentationTimeUs +
+                ", size=" + size +
+                '}';
+    }
 }
