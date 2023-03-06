@@ -31,6 +31,10 @@ open class H264Packet(sps: ByteArray, pps: ByteArray, private val videoPacketCal
   override fun createAndSendPacket(byteBuffer: ByteBuffer, bufferInfo: MediaBufferInfo) {
     // We read a NAL units from ByteBuffer and we send them
     // NAL units are preceded with 0x00000001
+    bufferInfo.size=byteBuffer.array().size
+    bufferInfo.flags == MediaCodec.BUFFER_FLAG_KEY_FRAME
+    bufferInfo.offset = 0
+    bufferInfo.presentationTimeUs = System.currentTimeMillis()
     byteBuffer.rewind()
     val header = ByteArray(getHeaderSize(byteBuffer) + 1)
     if (header.size == 1) return //invalid buffer or waiting for sps/pps

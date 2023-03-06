@@ -18,6 +18,7 @@ package mrapple100.Server.encoder.input.video;
 
 
 import mrapple100.Server.encoder.Frame;
+import mrapple100.Server.rtspserver.RtspServerCamera1;
 
 /**
  * Created by pedro on 20/01/17.
@@ -25,5 +26,7 @@ import mrapple100.Server.encoder.Frame;
 
 public interface GetCameraData {
 
-  void inputYUVData(Frame frame);
+  //void inputYUVData(Frame frame);
+
+    void inputYUVData(RtspServerCamera1 rtspServerCamera1, Frame frame);
 }
