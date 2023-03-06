@@ -27,6 +27,7 @@ open class ServerCommandManager(private val serverIp: String, private val server
   var videoPorts = ArrayList<Int>()
 
   fun createResponse(method: Method, request: String, cSeq: Int): String {
+    println("RESPONSE $method")
     return when (method){
       Method.OPTIONS -> createOptions(cSeq)
       Method.DESCRIBE -> {

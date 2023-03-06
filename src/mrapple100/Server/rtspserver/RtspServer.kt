@@ -48,9 +48,11 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
 
   fun startServer() {
     stopServer()
+    println("Start ServerClient")
     thread = Thread {
       try {
-        if (!videoDisabled) {
+       // if (!videoDisabled) {
+        println("sps "+sps+",pps "+pps)
           if (sps == null || pps == null) {
             semaphore.drainPermits()
           //  Log.i(TAG, "waiting for sps and pps")
@@ -60,16 +62,17 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
             connectCheckerRtsp.onConnectionFailedRtsp("sps or pps is null")
             return@Thread
           }
-        }
+      //}
         server = ServerSocket(port)
       } catch (e: IOException) {
         connectCheckerRtsp.onConnectionFailedRtsp("Server creation failed")
         println(e)
-      //  Log.e(TAG, "Error", e)
+      println("Error $e")
         return@Thread
       }
-     // Log.i(TAG, "Server started $serverIp:$port")
+      println( "Server started $serverIp:$port")
       while (!Thread.interrupted()) {
+        println("IN THREAD")
         try {
           val clientSocket = server?.accept() ?: continue
           val clientAddress = clientSocket.inetAddress.hostAddress
@@ -81,7 +84,9 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
           val client = ServerClient(clientSocket, serverIp, port, connectCheckerRtsp, clientAddress, sps, pps, vps,
               sampleRate, isStereo, videoDisabled, audioDisabled, user, password, this)
           client.rtspSender.setLogs(logs)
+          println("Client is ready")
           client.start()
+          println("Client is start")
           synchronized(clients) {
             clients.add(client)
           }
