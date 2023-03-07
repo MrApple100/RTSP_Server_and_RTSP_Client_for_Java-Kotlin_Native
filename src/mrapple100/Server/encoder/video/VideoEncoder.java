@@ -25,6 +25,8 @@ import mrapple100.Server.encoder.input.video.FpsLimiter;
 import mrapple100.Server.encoder.utils.CodecUtil;
 import mrapple100.Server.encoder.utils.yuv.YUVUtil;
 import mrapple100.Server.rtspserver.RtspServerCamera1;
+import mrapple100.utils.MediaCodec;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.jetbrains.annotations.NotNull;
 
@@ -103,10 +105,13 @@ public class VideoEncoder extends BaseEncoder {
     c.width(width);
     c.height(height);
     c.time_base().num(1).den(fps);
+   // c.framerate().num(fps).den(1);
     c.gop_size(1);
-    c.max_b_frames(0);
+    //c.max_b_frames(0);
     c.pix_fmt(AV_PIX_FMT_YUV420P);
-   // av_opt_set(c.priv_data(),"preset","ultrafast",0);
+    avcodec_open2(c, codec, new AVDictionary());
+
+    //  av_opt_set(c.priv_data(),"preset","ultrafast",0);
 
 //     // Log.i(TAG, "Prepare video info: " + this.formatVideoEncoder.name() + ", " + resolution);
 //      videoFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
@@ -383,10 +388,13 @@ public static byte[] imageToByteArray(BufferedImage image) {
   protected void checkBuffer(@NotNull ByteBuffer byteBuffer, @NotNull MediaBufferInfo bufferInfo) {
       forceKey = false;
      // requestKeyframe();
-
+    bufferInfo.size=byteBuffer.array().length;
+    bufferInfo.flags = MediaCodec.BUFFER_FLAG_KEY_FRAME;
+    bufferInfo.offset = 0;
+    bufferInfo.presentationTimeUs = System.currentTimeMillis();
     fixTimeStamp(bufferInfo);
     if (!spsPpsSetted && type.equals(CodecUtil.H264_MIME)) {
-      System.out.println("formatChanged not called, doing manual sps/pps extraction..."+bufferInfo.toString());
+      System.out.println("formatChanged not called, doing manual sps/pps extraction..."+bufferInfo.toString()+" "+spsPpsSetted);
 
       Pair<ByteBuffer, ByteBuffer> buffers = decodeSpsPpsFromBuffer(byteBuffer.duplicate(), byteBuffer.array().length);
       if (buffers != null) {
