@@ -16,6 +16,7 @@
 
 package mrapple100.Server.rtplibrary.base;
 
+import mrapple100.Server.DecodeUtil;
 import mrapple100.Server.MediaBufferInfo;
 import mrapple100.Server.encoder.Frame;
 import mrapple100.Server.encoder.input.video.GetCameraData;
@@ -357,6 +358,7 @@ public abstract class Camera1Base
 
   @Override
   public void onSpsPpsVps(ByteBuffer sps, ByteBuffer pps, ByteBuffer vps) {
+   // System.out.println("SPS "+ DecodeUtil.byteArrayToHexString(sps.array())+" PPS "+ DecodeUtil.byteArrayToHexString(pps.array()));
     onSpsPpsVpsRtp(sps.duplicate(), pps.duplicate(), vps != null ? vps.duplicate() : null);
   }
 
@@ -370,7 +372,7 @@ public abstract class Camera1Base
   }
 
   @Override
-  public void inputYUVData(RtspServerCamera1 rtspServerCamera1,Frame frame) {
+  public void inputYUVData(RtspServerCamera1 rtspServerCamera1, Frame frame) {
     videoEncoder.inputYUVData(rtspServerCamera1,frame);
   }
 

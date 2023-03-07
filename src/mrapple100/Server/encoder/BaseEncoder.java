@@ -38,6 +38,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.nio.ByteBuffer;
 import java.sql.SQLOutput;
+import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -56,13 +57,14 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     protected AVCodec codec;
     protected AVCodecContext c;
-    protected AVPacket packet = new AVPacket();
-    protected AVFrame frame = av_frame_alloc();
+
 
     protected RtspServerCamera1 rtspServer;
     protected VideoDecodeThreadTest videoDecodeThreadTest;
     private FrameQueue videoFrameQueue = new FrameQueue(1);
     private Boolean spsppssetted = false;
+
+    private byte[] lastbytes;
 
 
 
@@ -186,9 +188,8 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     private void processOutput(@NotNull ByteBuffer byteBuffer, @NotNull MediaBufferInfo bufferInfo) throws IllegalStateException {
         checkBuffer(byteBuffer, bufferInfo);
-        sendBuffer(byteBuffer, bufferInfo);
         try {
-            System.out.println("PUSH");
+          //  System.out.println("PUSH");
             videoFrameQueue.push(new FrameQueue.Frame(byteBuffer.array(),0,byteBuffer.array().length,System.currentTimeMillis()));
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -197,6 +198,8 @@ public abstract class BaseEncoder implements EncoderCallback {
             videoDecodeThreadTest = new VideoDecodeThreadTest(rtspServer.getFrameAfterPlace(),videoFrameQueue);
             videoDecodeThreadTest.start();
         }
+        sendBuffer(byteBuffer, bufferInfo);
+
     }
 
     public void setForce(CodecUtil.Force force) {
@@ -219,15 +222,31 @@ public abstract class BaseEncoder implements EncoderCallback {
     public void outputAvailable(@NotNull MediaBufferInfo bufferInfo) throws IllegalStateException, InterruptedException {
         ByteBuffer byteBuffer;
         byteBuffer = queuebb.take();
+       // System.out.println("OUTPUT1 "+DecodeUtil.byteArrayToHexString(byteBuffer.array()).substring(0,200));
 
         //need convert byteBuffer(yuv420) to h264
         byte[] h264 = encodeYuvToH264(byteBuffer.array());
+//        if(!spsppssetted){
+//            spsppssetted=true;
+//            h264 = byteBuffer.array();
+//        }else{
+//            // System.out.println(DecodeUtil.byteArrayToHexString(bytes));
+//            // System.out.println(DecodeUtil.byteArrayToHexString(bytes).length());
+//            // System.out.println(DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"));
+//            // System.out.println((bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2);
+//            h264 = new byte[(byteBuffer.array().length*2-DecodeUtil.byteArrayToHexString(byteBuffer.array()).indexOf("0000000165"))/2];
+//            System.arraycopy(byteBuffer.array(),DecodeUtil.byteArrayToHexString(byteBuffer.array()).indexOf("000000165")/2,h264,0,(byteBuffer.array().length*2-DecodeUtil.byteArrayToHexString(byteBuffer.array()).indexOf("0000000165"))/2);
+//        }
         if(h264!=null) {
-            System.out.println(DecodeUtil.byteArrayToHexString(h264).substring(0,100));
+           // System.out.println("OUTPUT2 "+DecodeUtil.byteArrayToHexString(h264).substring(0,100));
 
             ByteBuffer bb = ByteBuffer.wrap(h264);
             byteBuffer.rewind();
             processOutput(bb, bufferInfo);
+            if(lastbytes!=null)
+                if (Arrays.equals(h264,lastbytes))
+                    System.out.println("YEEEEEEEEEEEEEEEEEEEEEEEEEEEEEES");
+            lastbytes = h264;
 
         }
     }
@@ -241,23 +260,27 @@ public abstract class BaseEncoder implements EncoderCallback {
             //////////////////////////////////////////////////////////////////////////
 
           //  System.out.println(yuvData.length);
+             AVPacket packet = new AVPacket();
+             AVFrame frame = new AVFrame();
 
-            avcodec_open2(c, codec, new AVDictionary());
             frame.width(c.width());
             frame.height(c.height());
             frame.format(AV_PIX_FMT_YUV420P);
+            PointerPointer pp = new PointerPointer<Pointer>(frame);
+            BytePointer bp = new BytePointer(yuvData);
             av_frame_get_buffer(frame,32); //было 32
             av_image_fill_arrays(
-                    new PointerPointer<Pointer>(frame),
+                    frame.data(),
                     frame.linesize(),
-                    new BytePointer(yuvData),
+                    bp
+                    ,
                     AV_PIX_FMT_YUV420P,
                     c.width(),
                     c.height(),
                     1);
-            av_packet_unref(packet);
-            packet.data(new BytePointer());
-            packet.size(yuvData.length*2);
+           // av_packet_unref(packet);
+           // packet.data(new BytePointer());
+           // packet.size(yuvData.length*2);
 
             if(packet==null){
                 System.out.println("Не удалось выделить память для пакета");
@@ -268,21 +291,20 @@ public abstract class BaseEncoder implements EncoderCallback {
             int frameCount =0;
             int ret;
                 ret = av_frame_make_writable(frame);
-                //    System.out.println("Make " + ret);
+                    System.out.println("Make " + ret);
 
-                byte[] y = new byte[yuvData.length * 2 / 3];
-                byte[] u = new byte[yuvData.length / 6];
-                byte[] v = new byte[yuvData.length / 6];
-
-
-                System.arraycopy(yuvData, 0, y, 0, yuvData.length * 2 / 3);
-                System.arraycopy(yuvData, yuvData.length * 2 / 3, u, 0, yuvData.length / 6);
-                System.arraycopy(yuvData, yuvData.length * 5 / 6, v, 0, yuvData.length / 6);
-
-                frame.data(0, new BytePointer(y));
-                frame.data(1, new BytePointer(u));
-                frame.data(2, new BytePointer(v));
-                //  av_packet_unref(packet);
+//                byte[] y = new byte[c.width()*c.height()];
+//                byte[] u = new byte[y.length / 4];
+//                byte[] v = new byte[u.length];
+//
+//
+//                System.arraycopy(yuvData, 0, y, 0, y.length);
+//                System.arraycopy(yuvData, y.length, u, 0, u.length);
+//                System.arraycopy(yuvData, y.length+u.length, v, 0, v.length);
+//
+//                frame.data(0, new BytePointer(y));
+//                frame.data(1, new BytePointer(u));
+//                frame.data(2, new BytePointer(v));
                 //BytePointer framepointer = new BytePointer(bb);
 
                 //  println("ADDRESSCONTEXT " + "${context.address()}")
@@ -304,35 +326,43 @@ public abstract class BaseEncoder implements EncoderCallback {
 
                     //  println(context.frame_number())
                     //  println(context)
-                    ret = avcodec_receive_packet(c, packet);
-                    if (ret < 0) {
-                        System.out.println("ERROR RECEIVE " + ret);
+                        ret = avcodec_receive_packet(c, packet);
+
+                        if (ret == AVERROR_EAGAIN() || ret == AVERROR_EOF()) {
+                            System.out.println(AVERROR_EAGAIN());
+                            System.out.println(AVERROR_EOF());
+                        }
+                        if (ret < 0) {
+                            System.out.println("ERROR RECEIVE " + ret);
+                            return null;
+
+
+
                     }
-                    if (ret == AVERROR_EAGAIN() || ret == AVERROR_EOF()) {
-                        System.out.println(AVERROR_EAGAIN());
-                        System.out.println( AVERROR_EOF());
-                        return null;
+                    // byte[] out = new byte[frame.]
+                    BytePointer d = packet.data();
+                    byte[] bytes = new byte[packet.size()];
+                    if(!spsppssetted){
+                        spsppssetted=true;
+                        d.get(bytes);
+                        return bytes;
+                    }else{
+
+                        d.get(bytes);
+                     //   System.out.println(DecodeUtil.byteArrayToHexString(bytes));
+                        // System.out.println(DecodeUtil.byteArrayToHexString(bytes).length());
+                        // System.out.println(DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"));
+                        // System.out.println((bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2);
+                        byte[] withoutspspps = new byte[(bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2+1];
+                        System.arraycopy(bytes,DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165")/2+1,withoutspspps,1,(bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2);
+                        return withoutspspps;
                     }
                 }
+                av_frame_free(frame);
+                av_packet_unref(packet);
 
-           // byte[] out = new byte[frame.]
-            BytePointer d = packet.data();
-            byte[] bytes = new byte[packet.size()];
-            if(!spsppssetted){
-                spsppssetted=true;
-                d.get(bytes);
-                return bytes;
-            }else{
 
-                d.get(bytes);
-               // System.out.println(DecodeUtil.byteArrayToHexString(bytes));
-               // System.out.println(DecodeUtil.byteArrayToHexString(bytes).length());
-               // System.out.println(DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"));
-               // System.out.println((bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2);
-                byte[] withoutspspps = new byte[(bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2];
-                System.arraycopy(bytes,DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165")/2+1,withoutspspps,0,(bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2);
-                return withoutspspps;
-            }
+
 
         } catch (Exception e) {
             e.printStackTrace();
