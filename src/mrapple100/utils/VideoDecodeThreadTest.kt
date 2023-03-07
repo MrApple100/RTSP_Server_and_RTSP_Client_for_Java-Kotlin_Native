@@ -66,7 +66,7 @@ class VideoDecodeThreadTest (
 
             // Main loop
             while (!exitFlag.get()) {
-                println("TEST HERE")
+               // println("TEST HERE")
 
                 // Preventing BufferOverflowException
                 // if (length > byteBuffer.limit()) throw DecoderFatalException("Error")
@@ -78,10 +78,10 @@ class VideoDecodeThreadTest (
                 } else {
                     if(h264bytes!!.data[4]== "103".toByte()){
                         spspps = h264bytes.data!!
-                        println("103TEST "+DecodeUtil.byteArrayToHexString(h264bytes.data).subSequence(0,50))
+                       // println("103TEST "+DecodeUtil.byteArrayToHexString(h264bytes.data).subSequence(0,50))
                     }else{
                         val datasrc = h264bytes!!.data
-                        println("OSTTEST "+DecodeUtil.byteArrayToHexString(h264bytes!!.data).subSequence(0,50))
+                       // println("OSTTEST "+DecodeUtil.byteArrayToHexString(h264bytes!!.data).subSequence(0,50))
 
                         //   println(DecodeUtil.byteArrayToHexString(datasrc))
 
@@ -168,6 +168,8 @@ class VideoDecodeThreadTest (
                                 //println("Success!")
                                 // println("output : ${output[0]} ${output[1]} ${output[2]} ${output.size}")
                                 var img = createRGBImage(output, context.width(), context.height())
+
+                                println("IMG "+DecodeUtil.byteArrayToHexString(output).subSequence(0,100))
                                 //  println("img : ${(img!!.raster.dataBuffer as DataBufferByte).data[0]} ${(img!!.raster.dataBuffer as DataBufferByte).data[1]} ${(img!!.raster.dataBuffer as DataBufferByte).data[2]} ${output.size}")
 
                                 var baos: ByteArrayOutputStream? = null
@@ -253,7 +255,7 @@ class VideoDecodeThreadTest (
 //                }
             }
 
-           // videoFrameQueue.clear()
+            videoFrameQueue.clear()
 
         } catch (e: Exception) {
             //   Log.e(TAG, "$name stopped due to '${e.message}'")
