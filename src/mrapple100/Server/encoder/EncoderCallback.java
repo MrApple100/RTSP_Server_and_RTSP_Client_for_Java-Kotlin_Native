@@ -24,10 +24,9 @@ import org.jetbrains.annotations.NotNull;
  * Created by pedro on 18/09/19.
  */
 public interface EncoderCallback {
-  void inputAvailable()
+  void inputAvailable( MediaBufferInfo bufferInfo)
       throws IllegalStateException;
 
-  void outputAvailable(
-      @NotNull MediaBufferInfo bufferInfo) throws IllegalStateException, InterruptedException;
+  void outputAvailable( MediaBufferInfo bufferInfo) throws IllegalStateException, InterruptedException;
 
 }

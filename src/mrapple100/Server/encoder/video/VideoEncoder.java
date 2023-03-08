@@ -39,8 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-import static org.bytedeco.ffmpeg.global.avutil.av_opt_set;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 
 /**
  * Created by pedro on 19/01/17.
@@ -104,12 +103,14 @@ public class VideoEncoder extends BaseEncoder {
     c.bit_rate(bitRate);
     c.width(width);
     c.height(height);
-    c.time_base().num(1).den(fps);
+    c.time_base(new AVRational().num(1).den(fps));
    // c.framerate().num(fps).den(1);
     c.gop_size(1);
     //c.max_b_frames(0);
     c.pix_fmt(AV_PIX_FMT_YUV420P);
     avcodec_open2(c, codec, new AVDictionary());
+    PTS_of_last_frame = av_gettime();
+    time_elapsed_since_PTS_value_was_set = PTS_of_last_frame;
 
     //  av_opt_set(c.priv_data(),"preset","ultrafast",0);
 
@@ -388,17 +389,13 @@ public static byte[] imageToByteArray(BufferedImage image) {
   protected void checkBuffer(@NotNull ByteBuffer byteBuffer, @NotNull MediaBufferInfo bufferInfo) {
       forceKey = false;
      // requestKeyframe();
-    bufferInfo.size=byteBuffer.array().length;
-    bufferInfo.flags = MediaCodec.BUFFER_FLAG_KEY_FRAME;
-    bufferInfo.offset = 0;
-    bufferInfo.presentationTimeUs = System.currentTimeMillis();
     fixTimeStamp(bufferInfo);
     if (!spsPpsSetted && type.equals(CodecUtil.H264_MIME)) {
-      System.out.println("formatChanged not called, doing manual sps/pps extraction..."+bufferInfo.toString()+" "+spsPpsSetted);
+     // System.out.println("formatChanged not called, doing manual sps/pps extraction..."+bufferInfo.toString()+" "+spsPpsSetted);
 
       Pair<ByteBuffer, ByteBuffer> buffers = decodeSpsPpsFromBuffer(byteBuffer.duplicate(), byteBuffer.array().length);
       if (buffers != null) {
-        System.out.println("manual sps/pps extraction success");
+      //  System.out.println("manual sps/pps extraction success");
         oldSps = buffers.getKey();
         oldPps = buffers.getValue();
         oldVps = null;

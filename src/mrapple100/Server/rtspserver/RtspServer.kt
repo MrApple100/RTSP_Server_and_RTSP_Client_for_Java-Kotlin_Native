@@ -69,9 +69,9 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
       println("Error $e")
         return@Thread
       }
-      println( "Server started $serverIp:$port")
+      //println( "Server started $serverIp:$port")
       while (!Thread.interrupted()) {
-        println("IN THREAD")
+        //println("IN THREAD")
         try {
           val clientSocket = server?.accept() ?: continue
           val clientAddress = clientSocket.inetAddress.hostAddress
@@ -84,9 +84,9 @@ open class RtspServer(private val connectCheckerRtsp: ConnectCheckerRtsp,
           val client = ServerClient(clientSocket, serverIp, port, connectCheckerRtsp, clientAddress, sps, pps, vps,
               sampleRate, isStereo, videoDisabled, audioDisabled, user, password, this)
           client.rtspSender.setLogs(logs)
-          println("Client is ready")
+          //println("Client is ready")
           client.start()
-          println("Client is start")
+         // println("Client is start")
           synchronized(clients) {
             clients.add(client)
           }

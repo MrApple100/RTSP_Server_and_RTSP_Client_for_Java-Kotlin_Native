@@ -40,6 +40,7 @@ class VideoDecodeThreadTest (
     private val context: AVCodecContext = avcodec.avcodec_alloc_context3(codec);
     private val opts = AVDictionary()
 
+    private var swsContext: SwsContext? = null
 
 
 
@@ -97,7 +98,6 @@ class VideoDecodeThreadTest (
 
                             val frame: AVFrame = avutil.av_frame_alloc();
                             val packet: AVPacket = AVPacket()
-                            var swsContext: SwsContext? = null
 
                             val rgbFrame: AVFrame = avutil.av_frame_alloc()
 
@@ -169,7 +169,7 @@ class VideoDecodeThreadTest (
                                 // println("output : ${output[0]} ${output[1]} ${output[2]} ${output.size}")
                                 var img = createRGBImage(output, context.width(), context.height())
 
-                                println("IMG "+DecodeUtil.byteArrayToHexString(output).subSequence(0,100))
+                                //println("IMG "+DecodeUtil.byteArrayToHexString(output).subSequence(0,100))
                                 //  println("img : ${(img!!.raster.dataBuffer as DataBufferByte).data[0]} ${(img!!.raster.dataBuffer as DataBufferByte).data[1]} ${(img!!.raster.dataBuffer as DataBufferByte).data[2]} ${output.size}")
 
                                 var baos: ByteArrayOutputStream? = null
@@ -190,50 +190,13 @@ class VideoDecodeThreadTest (
                                 framePlace.icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(600,800, Image.SCALE_DEFAULT))
 
 
-
-                                //convert rgb to yuv
-                                //println("${context.width()} ${ context.height()}")
-
-
-
-                                // Пересчитать RGB24 в YUV420
-
-
-// Конвертировать RGB в YUV420
-                                //  println("start")
-
-                                val swsContext2: SwsContext = sws_getContext(context.width(), context.height(), AV_PIX_FMT_RGB24, context.width(), context.height(), AV_PIX_FMT_YUV420P, 0, null, null,  DoublePointer())
-                                //  println("swsContext "+swsContext.address())
-                                //  println("out "+output.size)
-                                val yuvFrame: AVFrame = avutil.av_frame_alloc()
-                                val sizeyuv = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_YUV420P, context.width(), context.height(), 1)
-                                val bufferyuv: BytePointer = BytePointer(avutil.av_malloc(sizeyuv.toLong()))
-                                avutil.av_image_fill_arrays(yuvFrame.data(), yuvFrame.linesize(), bufferyuv, avutil.AV_PIX_FMT_YUV420P, context.width(), context.height(), 1)
-
-
-                                // val yuv420 = ByteArray(output.size/2)
-                                //val ppOutput = PointerPointer<Pointer>(output)
-                                //val ppYuv420 = PointerPointer<Pointer>(yuv420)
-                                sws_scale(swsContext2,rgbFrame.data(),rgbFrame.linesize(),0,context.height(),yuvFrame.data(),yuvFrame.linesize())
-                                val outputyuv = ByteArray(size)
-                                buffer.get(outputyuv)
-                                //  sws_scale(swsContext2, ppOutput, IntPointer( context.width()*3), 0, context.height(), ppYuv420, IntPointer( context.width()))
-                                //  println("swsscale is ok "+ yuv420.size)
-
-                                //sws_freeContext(swsContext);
-                                //  println("yuv "+yuv420.size)
-                                //iplImage.deallocate()
-                                // sws_freeContext(swsContext2)
-                                // av_frame_free(frame)
-                                // av_frame_free(rgbFrame)
-                                // }
                                 av_packet_unref(packet)
+                                av_frame_free(frame)
+                                av_frame_free(rgbFrame)
 //                    avcodec_close(context)
 //                    avcodec_free_context(context)
 //
 //                    sws_freeContext(swsContext)
-//                    av_frame_free(frame)
-                                // av_frame_free(rgb)
                                 //////////////////////////////////////////////////////////////////
                             }
                         } catch (e:Exception){

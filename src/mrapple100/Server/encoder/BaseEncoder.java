@@ -23,6 +23,7 @@ import mrapple100.Server.encoder.utils.CodecUtil;
 import mrapple100.Server.rtspserver.RtspServerCamera1;
 import mrapple100.utils.ByteUtils;
 import mrapple100.utils.DecodeUtil;
+import mrapple100.utils.MediaCodec;
 import mrapple100.utils.VideoDecodeThreadTest;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
@@ -51,12 +52,14 @@ import static org.bytedeco.ffmpeg.global.avutil.*;
 public abstract class BaseEncoder implements EncoderCallback {
 
     protected String TAG = "BaseEncoder";
-    private final MediaBufferInfo bufferInfo = new MediaBufferInfo();
     protected BlockingQueue<Frame> queue = new ArrayBlockingQueue<>(1);
     protected BlockingQueue<ByteBuffer> queuebb = new ArrayBlockingQueue<>(1);
 
     protected AVCodec codec;
     protected AVCodecContext c;
+    private Integer FrameCount =1;
+    protected Long PTS_of_last_frame =0l;
+    protected Long time_elapsed_since_PTS_value_was_set=0l;
 
 
     protected RtspServerCamera1 rtspServer;
@@ -150,8 +153,8 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     //here
     protected void getDataFromEncoder() throws IllegalStateException, InterruptedException {
-
-        inputAvailable();
+        MediaBufferInfo bufferInfo = new MediaBufferInfo();
+        inputAvailable(bufferInfo);
 
 
         outputAvailable(bufferInfo);
@@ -162,14 +165,15 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     protected abstract long calculatePts(Frame frame, long presentTimeUs);
 
-    private void processInput() throws IllegalStateException {
+    private void processInput( MediaBufferInfo bufferInfo ) throws IllegalStateException {
         try {
             Frame frame = getInputFrame();
             while (frame == null) frame = getInputFrame();
 //      byteBuffer.clear();
 //      int size = Math.max(0, Math.min(frame.getSize(), byteBuffer.remaining()) - frame.getOffset());
 //      byteBuffer.put(frame.getBuffer(), frame.getOffset(), size);
-//      long pts = calculatePts(frame, presentTimeUs);
+      long pts = calculatePts(frame, presentTimeUs);
+      bufferInfo.presentationTimeUs = pts;
             //System.out.println("Frame: "+DecodeUtil.byteArrayToHexString(frame.getBuffer()));
             queuebb.offer(ByteBuffer.wrap(frame.getBuffer()));
 //      mediaCodec.queueInputBuffer(inBufferIndex, 0, size, pts, 0);
@@ -188,16 +192,17 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     private void processOutput(@NotNull ByteBuffer byteBuffer, @NotNull MediaBufferInfo bufferInfo) throws IllegalStateException {
         checkBuffer(byteBuffer, bufferInfo);
-        try {
-          //  System.out.println("PUSH");
-            videoFrameQueue.push(new FrameQueue.Frame(byteBuffer.array(),0,byteBuffer.array().length,System.currentTimeMillis()));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        if(videoDecodeThreadTest==null){
-            videoDecodeThreadTest = new VideoDecodeThreadTest(rtspServer.getFrameAfterPlace(),videoFrameQueue);
-            videoDecodeThreadTest.start();
-        }
+        //Debug second screen
+//        try {
+//          //  System.out.println("PUSH");
+//            videoFrameQueue.push(new FrameQueue.Frame(byteBuffer.array(),0,byteBuffer.array().length,System.currentTimeMillis()));
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        if(videoDecodeThreadTest==null){
+//            videoDecodeThreadTest = new VideoDecodeThreadTest(rtspServer.getFrameAfterPlace(),videoFrameQueue);
+//            videoDecodeThreadTest.start();
+//        }
         sendBuffer(byteBuffer, bufferInfo);
 
     }
@@ -211,21 +216,22 @@ public abstract class BaseEncoder implements EncoderCallback {
     }
 
     @Override
-    public void inputAvailable()
+    public void inputAvailable( MediaBufferInfo bufferInfo)
             throws IllegalStateException {
 
 
-        processInput();
+        processInput(bufferInfo);
     }
 
     @Override
-    public void outputAvailable(@NotNull MediaBufferInfo bufferInfo) throws IllegalStateException, InterruptedException {
+    public void outputAvailable(MediaBufferInfo bufferInfo ) throws IllegalStateException, InterruptedException {
         ByteBuffer byteBuffer;
+
         byteBuffer = queuebb.take();
        // System.out.println("OUTPUT1 "+DecodeUtil.byteArrayToHexString(byteBuffer.array()).substring(0,200));
 
         //need convert byteBuffer(yuv420) to h264
-        byte[] h264 = encodeYuvToH264(byteBuffer.array());
+        byte[] h264 = encodeYuvToH264(byteBuffer.array(),bufferInfo);
 //        if(!spsppssetted){
 //            spsppssetted=true;
 //            h264 = byteBuffer.array();
@@ -243,15 +249,12 @@ public abstract class BaseEncoder implements EncoderCallback {
             ByteBuffer bb = ByteBuffer.wrap(h264);
             byteBuffer.rewind();
             processOutput(bb, bufferInfo);
-            if(lastbytes!=null)
-                if (Arrays.equals(h264,lastbytes))
-                    System.out.println("YEEEEEEEEEEEEEEEEEEEEEEEEEEEEEES");
-            lastbytes = h264;
+
 
         }
     }
 
-    public byte[] encodeYuvToH264(byte[] yuvData) {
+    public byte[] encodeYuvToH264(byte[] yuvData,MediaBufferInfo bufferInfo) {
 
         ByteBuffer bb = ByteBuffer.wrap(yuvData);
         bb.rewind();
@@ -260,38 +263,44 @@ public abstract class BaseEncoder implements EncoderCallback {
             //////////////////////////////////////////////////////////////////////////
 
           //  System.out.println(yuvData.length);
-             AVPacket packet = new AVPacket();
-             AVFrame frame = new AVFrame();
+             AVPacket packet = av_packet_alloc();
+             AVFrame frame = av_frame_alloc();
 
             frame.width(c.width());
             frame.height(c.height());
             frame.format(AV_PIX_FMT_YUV420P);
-            PointerPointer pp = new PointerPointer<Pointer>(frame);
             BytePointer bp = new BytePointer(yuvData);
             av_frame_get_buffer(frame,32); //было 32
             av_image_fill_arrays(
                     frame.data(),
                     frame.linesize(),
-                    bp
-                    ,
+                    bp,
                     AV_PIX_FMT_YUV420P,
                     c.width(),
                     c.height(),
                     1);
-           // av_packet_unref(packet);
+            //av_packet_unref(packet);
            // packet.data(new BytePointer());
            // packet.size(yuvData.length*2);
+//            System.out.println("AVTIME "+av_gettime());
+//            System.out.println("DELTA "+(av_gettime()-time_elapsed_since_PTS_value_was_set)/1000000);
+//            System.out.println(c.time_base().num());
+//            System.out.println(c.time_base().den());
+//            System.out.println("Delta "+(c.time_base().num()/(double)c.time_base().den()*1000));
+           // System.out.println("NOW "+System.currentTimeMillis()*c.time_base().num()%24000000);
+            frame.pts((long)(PTS_of_last_frame+(c.time_base().num()/(double)c.time_base().den()*1000)));
+            PTS_of_last_frame = frame.pts();
+        //    System.out.println("FRAMEPTS " +frame.pts());
+          //  packet.pts(100000*c.time_base().num()/c.time_base().den());
 
             if(packet==null){
                 System.out.println("Не удалось выделить память для пакета");
             }
 
-            byte[] h264Bytes = new byte[c.width()* c.height()];
-            int h264Size = 0;
-            int frameCount =0;
+
             int ret;
                 ret = av_frame_make_writable(frame);
-                    System.out.println("Make " + ret);
+                  //  System.out.println("Make " + ret);
 
 //                byte[] y = new byte[c.width()*c.height()];
 //                byte[] u = new byte[y.length / 4];
@@ -311,8 +320,6 @@ public abstract class BaseEncoder implements EncoderCallback {
                 //  println("ADDRESS " + "${framepointer.address()}")
                 // packet.data(framepointer);
 
-
-                //packet.size(yuvData.length);
                 ret = avcodec_send_frame(c, frame);
                 if (ret < 0) {
                     System.out.println("ERROR SEND " + ret);
@@ -328,6 +335,7 @@ public abstract class BaseEncoder implements EncoderCallback {
                     //  println(context)
                         ret = avcodec_receive_packet(c, packet);
 
+
                         if (ret == AVERROR_EAGAIN() || ret == AVERROR_EOF()) {
                             System.out.println(AVERROR_EAGAIN());
                             System.out.println(AVERROR_EOF());
@@ -340,21 +348,31 @@ public abstract class BaseEncoder implements EncoderCallback {
 
                     }
                     // byte[] out = new byte[frame.]
+                   // bufferInfo.presentationTimeUs = packet.pts();
+                 //   System.out.println("PTS "+bufferInfo.presentationTimeUs);
+
+
                     BytePointer d = packet.data();
                     byte[] bytes = new byte[packet.size()];
                     if(!spsppssetted){
                         spsppssetted=true;
                         d.get(bytes);
+                        bufferInfo.size=bytes.length;
+                        bufferInfo.flags = MediaCodec.BUFFER_FLAG_KEY_FRAME;
+                        bufferInfo.offset = 0;
                         return bytes;
                     }else{
 
                         d.get(bytes);
-                     //   System.out.println(DecodeUtil.byteArrayToHexString(bytes));
+                      //  System.out.println(DecodeUtil.byteArrayToHexString(bytes).substring(0,100));
                         // System.out.println(DecodeUtil.byteArrayToHexString(bytes).length());
                         // System.out.println(DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"));
                         // System.out.println((bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2);
                         byte[] withoutspspps = new byte[(bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2+1];
                         System.arraycopy(bytes,DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165")/2+1,withoutspspps,1,(bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2);
+                        bufferInfo.size=withoutspspps.length;
+                        bufferInfo.flags = MediaCodec.BUFFER_FLAG_KEY_FRAME;
+                        bufferInfo.offset = 0;
                         return withoutspspps;
                     }
                 }

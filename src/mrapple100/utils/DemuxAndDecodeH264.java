@@ -229,12 +229,12 @@ public final class DemuxAndDecodeH264 {
         int ret = 0;
         while (ret >= 0) {
             byte[] bbb = new byte[codecContext.extradata_size()];
-            System.out.println("codecContext: "+codecContext.slice_count() + " "+ codecContext.gop_size() + " "+ codecContext.extradata_size()+ " "+ codecContext.slices()+ " "+ codecContext.frame_number()+" "+ codecContext.extradata().get(bbb)+ " "+ codecContext.flags());
-            System.out.println(bbb);
-            System.out.println(DecodeUtil.byteArrayToHexString(bbb));
+//            System.out.println("codecContext: "+codecContext.slice_count() + " "+ codecContext.gop_size() + " "+ codecContext.extradata_size()+ " "+ codecContext.slices()+ " "+ codecContext.frame_number()+" "+ codecContext.extradata().get(bbb)+ " "+ codecContext.flags());
+//            System.out.println(bbb);
+//            System.out.println(DecodeUtil.byteArrayToHexString(bbb));
             ret = avcodec.avcodec_receive_frame(codecContext, yuv420Frame);
-            System.out.println("HI");
-            System.out.println("YUV420: "+yuv420Frame);
+//            System.out.println("HI");
+//            System.out.println("YUV420: "+yuv420Frame);
             if (ret == AVERROR_EAGAIN() || ret == AVERROR_EOF()) {
                 continue;
             } else
