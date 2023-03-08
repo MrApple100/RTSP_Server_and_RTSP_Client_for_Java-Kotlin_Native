@@ -41,11 +41,9 @@ class VideoDecodeThread (
     private val context: AVCodecContext = avcodec.avcodec_alloc_context3(codec);
     private val opts = AVDictionary()
 
-    val frame: AVFrame = avutil.av_frame_alloc();
-    val packet: AVPacket = AVPacket()
+
     var swsContext: SwsContext? = null
 
-    val rgbFrame: AVFrame = avutil.av_frame_alloc()
 
 
 
@@ -101,6 +99,9 @@ class VideoDecodeThread (
                             try {
                                 //////////////////////////////////////////////////////////////////////////
 
+                                val frame: AVFrame = avutil.av_frame_alloc();
+                                val packet: AVPacket = AVPacket()
+                                val rgbFrame: AVFrame = avutil.av_frame_alloc()
 
 
                                 avcodec.avcodec_open2(context, codec, opts)
@@ -113,6 +114,7 @@ class VideoDecodeThread (
                               //  println("ADDRESS " + "${framepointer.address()}")
                                 packet.data(framepointer)
 
+                               // println("THREAD "+packet.pts())
 
 
                                 packet.size(spsppsAndFrame.size)
@@ -148,6 +150,7 @@ class VideoDecodeThread (
 //                            } else if (ret < 0) {
 //                                break
 //                            }
+                                  //  println("THREADFrame "+frame.pts())
 
                                   //  println("${++whileenter}")
                                  //   println("NICE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
@@ -317,6 +320,8 @@ class VideoDecodeThread (
                                     framePlace.icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(500,800, Image.SCALE_DEFAULT))
 
                                     av_packet_unref(packet)
+                                    av_frame_free(frame)
+                                    av_frame_free(rgbFrame)
 //                    avcodec_close(context)
 //                    avcodec_free_context(context)
 //
