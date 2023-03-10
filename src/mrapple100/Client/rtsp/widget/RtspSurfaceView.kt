@@ -17,8 +17,12 @@ import mrapple100.Client.rtsp.codec.VideoDecodeThread
 import mrapple100.Server.rtspserver.RtspServerCamera1
 import mrapple100.utils.FrameSynchronizer
 import mrapple100.utils.NetUtils
+import org.bytedeco.ffmpeg.avcodec.AVCodec
+import org.bytedeco.ffmpeg.avcodec.AVCodecContext
 import org.bytedeco.ffmpeg.avformat.AVFormatContext
 import org.bytedeco.ffmpeg.avformat.AVStream
+import org.bytedeco.ffmpeg.avutil.AVDictionary
+import org.bytedeco.ffmpeg.global.avcodec
 import java.io.*
 import java.net.Socket
 import java.net.URI
@@ -283,8 +287,13 @@ var nframe =0
                     if (!firstFrameRendered) statusListener?.onRtspFirstFrameRendered()
                     firstFrameRendered = true
                 }*/
-         //   Log.i(TAG, "Starting video decoder with mime type \"$videoMimeType\"")
-            videoDecodeThread = VideoDecodeThread(
+            val codec: AVCodec = avcodec.avcodec_find_decoder(avcodec.AV_CODEC_ID_H264)
+            val context: AVCodecContext = avcodec.avcodec_alloc_context3(codec);
+            val opts = AVDictionary()
+            avcodec.avcodec_open2(context, codec, opts)
+
+            //   Log.i(TAG, "Starting video decoder with mime type \"$videoMimeType\"")
+            videoDecodeThread = VideoDecodeThread(codec,context,opts,
                 framePlace,RtspServer, videoFrameQueue)
             videoDecodeThread!!.name = "RTSP video thread [${getUriName()}]"
             videoDecodeThread!!.start()

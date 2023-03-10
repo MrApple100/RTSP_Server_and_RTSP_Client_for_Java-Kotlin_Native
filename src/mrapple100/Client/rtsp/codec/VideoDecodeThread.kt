@@ -31,19 +31,28 @@ import javax.swing.ImageIcon
 import javax.swing.JLabel
 
 class VideoDecodeThread (
+        private val codec:AVCodec,
+        private val context: AVCodecContext,
+        private val opts:AVDictionary,
     private val framePlace: JLabel,
     private val rtspServer:RtspServerCamera1,
     private val videoFrameQueue: FrameQueue
     ) : Thread() {
     var spspps: ByteArray? = null;
 
-    private val codec: AVCodec = avcodec.avcodec_find_decoder(avcodec.AV_CODEC_ID_H264)
-    private val context: AVCodecContext = avcodec.avcodec_alloc_context3(codec);
-    private val opts = AVDictionary()
+//    private val codec: AVCodec = avcodec.avcodec_find_decoder(avcodec.AV_CODEC_ID_H264)
+//    private val context: AVCodecContext = avcodec.avcodec_alloc_context3(codec);
+//    private val opts = AVDictionary()
 
 
     var swsContext: SwsContext? = null
-
+    var size:Int? =null
+    var buffer: BytePointer?=null
+    var output:ByteArray? =null
+    var swsContext2: SwsContext?=null
+    var sizeyuv:Int?=null
+    var bufferyuv: BytePointer?=null
+    var outputyuv: ByteArray?=null
 
 
 
@@ -104,7 +113,6 @@ class VideoDecodeThread (
                                 val rgbFrame: AVFrame = avutil.av_frame_alloc()
 
 
-                                avcodec.avcodec_open2(context, codec, opts)
 
                                 // }
                                 av_packet_unref(packet)
@@ -124,11 +132,12 @@ class VideoDecodeThread (
                                 } else {
                                  //   println("${context.width()} ${context.height()}")
 
-                                    swsContext = sws_getContext(
-                                            context.width(), context.height(), context.pix_fmt(),
-                                            context.width(), context.height(), avutil.AV_PIX_FMT_RGB24,
-                                            0, null, null, DoublePointer())
-
+                                    if(swsContext==null) {
+                                        swsContext = sws_getContext(
+                                                context.width(), context.height(), context.pix_fmt(),
+                                                context.width(), context.height(), avutil.AV_PIX_FMT_RGB24,
+                                                0, null, null, DoublePointer())
+                                    }
                                     var whileenter = 0;
                                     // while (ret >= 0) {
                                   //  println("OKOKOKOK0")
@@ -156,13 +165,16 @@ class VideoDecodeThread (
                                  //   println("NICE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                                     //println("${swsContext}")
                                   //  println("NICE2")
-                                    val size = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_RGB24, context.width(), context.height(), 1)
-                                    val buffer: BytePointer = BytePointer(avutil.av_malloc(size.toLong()))
+                                    if(buffer==null) {
+                                        size = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_RGB24, context.width(), context.height(), 1)
+                                        buffer = BytePointer(avutil.av_malloc(size!!.toLong()))
+                                        output = ByteArray(size!!)
+                                    }
                                     avutil.av_image_fill_arrays(rgbFrame.data(), rgbFrame.linesize(), buffer, avutil.AV_PIX_FMT_RGB24, context.width(), context.height(), 1)
                                   //  println("Nice3")
                                     sws_scale(swsContext, frame.data(), frame.linesize(), 0, context.height(), rgbFrame.data(), rgbFrame.linesize())
-                                    val output = ByteArray(size)
-                                    buffer.get(output)
+
+                                    buffer!!.get(output)
 
 
 
@@ -172,7 +184,7 @@ class VideoDecodeThread (
                                     //display the image as an ImageIcon object
                                     //println("Success!")
                                    // println("output : ${output[0]} ${output[1]} ${output[2]} ${output.size}")
-                                    var img = createRGBImage(output, context.width(), context.height())
+                                    var img = createRGBImage(output!!, context.width(), context.height())
                                   //  println("img : ${(img!!.raster.dataBuffer as DataBufferByte).data[0]} ${(img!!.raster.dataBuffer as DataBufferByte).data[1]} ${(img!!.raster.dataBuffer as DataBufferByte).data[2]} ${output.size}")
 
                                     var baos: ByteArrayOutputStream? = null
@@ -207,7 +219,7 @@ class VideoDecodeThread (
                                     frameAfterRGB.width(context.width())
                                     frameAfterRGB.height(context.height())
                                     frameAfterRGB.format(AV_PIX_FMT_RGB24)
-                                    val pp2: PointerPointer<*> = PointerPointer<Pointer>(frameAfterRGB)
+                                  //  val pp2: PointerPointer<*> = PointerPointer<Pointer>(frameAfterRGB)
                                     val bp2 = BytePointer(ByteBuffer.wrap(output))
                                     av_frame_get_buffer(frameAfterRGB, 32) //было 32
 
@@ -223,12 +235,18 @@ class VideoDecodeThread (
 
                                       //  println("start")
                                     //    println("IMG "+img!!.width+" "+img!!.height) 640x480
-                                    val swsContext2: SwsContext = sws_getContext(context.width(), context.height(), AV_PIX_FMT_RGB24 , context.width(), context.height(), AV_PIX_FMT_YUV420P, 0, null, null,  DoublePointer())
-                                    //  println("swsContext "+swsContext.address())
+
+                                    if(swsContext2==null) {
+                                        swsContext2 = sws_getContext(context.width(), context.height(), AV_PIX_FMT_RGB24, context.width(), context.height(), AV_PIX_FMT_YUV420P, 0, null, null, DoublePointer())
+                                    }
+                                        //  println("swsContext "+swsContext.address())
                                     //  println("out "+output.size)
                                     val yuvFrame: AVFrame = avutil.av_frame_alloc()
-                                    val sizeyuv = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_YUV420P, context.width(), context.height(), 1)
-                                    val bufferyuv: BytePointer = BytePointer(avutil.av_malloc(sizeyuv.toLong()))
+                                    if(bufferyuv==null) {
+                                        sizeyuv = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_YUV420P, context.width(), context.height(), 1)
+                                        bufferyuv = BytePointer(avutil.av_malloc(sizeyuv!!.toLong()))
+                                         outputyuv = ByteArray(sizeyuv!!)
+                                    }
                                     avutil.av_image_fill_arrays(yuvFrame.data(), yuvFrame.linesize(), bufferyuv, avutil.AV_PIX_FMT_YUV420P, context.width(), context.height(), 1)
 
 
@@ -236,8 +254,7 @@ class VideoDecodeThread (
                                     //val ppOutput = PointerPointer<Pointer>(output)
                                     //val ppYuv420 = PointerPointer<Pointer>(yuv420)
                                     sws_scale(swsContext2,frameAfterRGB.data(),frameAfterRGB.linesize(),0,context.height(),yuvFrame.data(),yuvFrame.linesize())
-                                    val outputyuv = ByteArray(sizeyuv)
-                                    bufferyuv.get(outputyuv)
+                                    bufferyuv!!.get(outputyuv!!)
                                   //  sws_scale(swsContext2, ppOutput, IntPointer( context.width()*3), 0, context.height(), ppYuv420, IntPointer( context.width()))
                                       //  println("swsscale is ok "+ yuv420.size)
 
@@ -251,7 +268,7 @@ class VideoDecodeThread (
 //                                        opencv_imgproc.cvCvtColor(iplImage, iplImage, opencv_imgproc.CV_RGB2YUV)
                                        // val yuv420 = YUVUtil.convertRgbToYuv420(output,context.width(),context.height())
 
-                                        rtspServer.inputYUVData(rtspServer,Frame(outputyuv, 0, 0))
+                                     //   rtspServer.inputYUVData(rtspServer,Frame(outputyuv, 0, 0))
                                         //iplImage.deallocate()
                                        // sws_freeContext(swsContext2)
                                    // av_frame_free(frame)
@@ -319,8 +336,16 @@ class VideoDecodeThread (
 
                                     framePlace.icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(500,800, Image.SCALE_DEFAULT))
 
+                                    bp2.close()
+                                    img!!.flush()
+                                    baos!!.reset()
+                                    //buffer.close() no need
+                                    //bufferyuv.close() no need
+                                    framepointer.close()
                                     av_packet_unref(packet)
                                     av_frame_free(frame)
+                                    av_frame_free(frameAfterRGB)
+                                    av_frame_free(yuvFrame)
                                     av_frame_free(rgbFrame)
 //                    avcodec_close(context)
 //                    avcodec_free_context(context)
@@ -329,7 +354,7 @@ class VideoDecodeThread (
 //                    av_frame_free(frame)
                                     // av_frame_free(rgb)
                                     //////////////////////////////////////////////////////////////////
-                                }
+                               }
                             } catch (e:Exception){
                                 println(e.localizedMessage)
                             }

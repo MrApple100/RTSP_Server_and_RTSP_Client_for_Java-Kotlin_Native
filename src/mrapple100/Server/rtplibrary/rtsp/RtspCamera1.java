@@ -16,12 +16,12 @@
 
 package mrapple100.Server.rtplibrary.rtsp;
 
+import com.pedro.rtsp.rtsp.VideoCodec;
 import mrapple100.Server.MediaBufferInfo;
 import mrapple100.Server.encoder.utils.CodecUtil;
 import mrapple100.Server.rtplibrary.base.Camera1Base;
 import mrapple100.Server.rtsp.rtsp.Protocol;
 import mrapple100.Server.rtsp.rtsp.RtspClient;
-import com.pedro.rtsp.rtsp.VideoCodec;
 import mrapple100.Server.rtsp.utils.ConnectCheckerRtsp;
 import org.jetbrains.annotations.Nullable;
 

@@ -1,11 +1,9 @@
 package mrapple100.Client.rtsp.parser;
 
 
-
 import mrapple100.utils.NetUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 
 import java.io.IOException;
 import java.io.InputStream;

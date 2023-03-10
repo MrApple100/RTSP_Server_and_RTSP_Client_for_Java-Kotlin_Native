@@ -1,9 +1,6 @@
 package mrapple100.Client.rtsp;
 
 
-
-
-
 import kotlin.Pair;
 import mrapple100.Client.rtsp.parser.AacParser;
 import mrapple100.Client.rtsp.parser.RtpParser;
@@ -13,8 +10,10 @@ import mrapple100.utils.VideoCodecUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -891,7 +890,7 @@ public class RtspClient {
 //            int indexRtsp = line.indexOf("TSP/1.0 "); // 8 characters, 'R' already found
 //            if (indexRtsp >= 0) {
                 int indexCode = line.indexOf(' ');
-                String code = line.substring(0, indexCode);
+                String code = new String(line.substring(0, indexCode));
                 try {
                     int statusCode = Integer.parseInt(code);
                     //if (debug)
