@@ -1,19 +1,18 @@
 package mrapple100.utils;
 
-import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.javacv.*;
 
-import javax.swing.*;
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
 public class H264Player {
     public static void main(String[] args) {
 
-        try {
-            new DemuxAndDecodeH264().start("video0.h264",new JLabel());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        try {
+//          //  new DemuxAndDecodeH264().start("video0.h264",new JLabel());
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         try{
             //FileOutputStream fos = new FileOutputStream("Hexh264");

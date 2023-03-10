@@ -17,7 +17,6 @@
 package mrapple100.Server.encoder.video;
 
 import javafx.util.Pair;
-import mrapple100.Server.DecodeUtil;
 import mrapple100.Server.MediaBufferInfo;
 import mrapple100.Server.encoder.BaseEncoder;
 import mrapple100.Server.encoder.Frame;
@@ -25,8 +24,6 @@ import mrapple100.Server.encoder.input.video.FpsLimiter;
 import mrapple100.Server.encoder.utils.CodecUtil;
 import mrapple100.Server.encoder.utils.yuv.YUVUtil;
 import mrapple100.Server.rtspserver.RtspServerCamera1;
-import mrapple100.utils.MediaCodec;
-import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,7 +36,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
+import static org.bytedeco.ffmpeg.global.avutil.av_gettime;
 
 /**
  * Created by pedro on 19/01/17.
@@ -50,7 +48,7 @@ public class VideoEncoder extends BaseEncoder {
 
   private final GetVideoData getVideoData;
   private boolean spsPpsSetted = false;
-  private boolean forceKey = false;
+ // private boolean forceKey = false;
   //video data necessary to send after requestKeyframe.
   private ByteBuffer oldSps, oldPps, oldVps;
 
@@ -97,21 +95,23 @@ public class VideoEncoder extends BaseEncoder {
     this.avcProfileLevel = avcProfileLevel;
     isBufferMode = true;
 
-
+  try(AVRational avRational = new AVRational().num(1).den(fps)) {
     codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     c = avcodec_alloc_context3(codec);
     c.bit_rate(bitRate);
     c.width(width);
     c.height(height);
-    c.time_base(new AVRational().num(1).den(fps));
-   // c.framerate().num(fps).den(1);
+
+    c.time_base(avRational);
+    // c.framerate().num(fps).den(1);
     c.gop_size(1);
     //c.max_b_frames(0);
     c.pix_fmt(AV_PIX_FMT_YUV420P);
-    avcodec_open2(c, codec, new AVDictionary());
     PTS_of_last_frame = av_gettime();
     time_elapsed_since_PTS_value_was_set = PTS_of_last_frame;
+  }catch (Exception e){
 
+  }
     //  av_opt_set(c.priv_data(),"preset","ultrafast",0);
 
 //     // Log.i(TAG, "Prepare video info: " + this.formatVideoEncoder.name() + ", " + resolution);
@@ -133,7 +133,7 @@ public class VideoEncoder extends BaseEncoder {
 
   @Override
   public void start(boolean resetTs) {
-    forceKey = false;
+    //forceKey = false;
     shouldReset = resetTs;
     spsPpsSetted = false;
     if (resetTs) {
@@ -171,36 +171,7 @@ public class VideoEncoder extends BaseEncoder {
         formatVideoEncoder, avcProfile, avcProfileLevel);
   }
 
-//  public void setVideoBitrateOnFly(int bitrate) {
-//    if (isRunning()) {
-//      this.bitRate = bitrate;
-//      Bundle bundle = new Bundle();
-//      bundle.putInt(MediaCodec.PARAMETER_KEY_VIDEO_BITRATE, bitrate);
-//      try {
-//        codec.setParameters(bundle);
-//      } catch (IllegalStateException e) {
-//       // Log.e(TAG, "encoder need be running", e);
-//      }
-//    }
-//  }
 
-//  public void requestKeyframe() {
-//    if (isRunning()) {
-//      if (spsPpsSetted) {
-//        Bundle bundle = new Bundle();
-//        bundle.putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0);
-//        try {
-//          codec.setParameters(bundle);
-//          getVideoData.onSpsPpsVps(oldSps, oldPps, oldVps);
-//        } catch (IllegalStateException e) {
-//         // Log.e(TAG, "encoder need be running", e);
-//        }
-//      } else {
-//        //You need wait until encoder generate first frame.
-//        forceKey = true;
-//      }
-//    }
-//  }
 
 
   public int getWidth() {
@@ -249,9 +220,13 @@ public class VideoEncoder extends BaseEncoder {
 
     this.rtspServer = rtspServerCamera1;
 
-    if ( !queue.offer(frame)) {
-      System.out.println("frame discarded");
-    }
+      try {
+          if ( !queue.push(frame)) {
+            System.out.println("frame discarded");
+          }
+      } catch (InterruptedException e) {
+          e.printStackTrace();
+      }
   }
 public static byte[] imageToByteArray(BufferedImage image) {
   try {
@@ -265,22 +240,7 @@ public static byte[] imageToByteArray(BufferedImage image) {
   }
   return null;
 }
-  /*private void sendSPSandPPS(MediaFormat mediaFormat) {
-    //H265
-    if (type.equals(CodecUtil.H265_MIME)) {
-      List<ByteBuffer> byteBufferList = extractVpsSpsPpsFromH265(mediaFormat.getByteBuffer("csd-0"));
-      oldSps = byteBufferList.get(1);
-      oldPps = byteBufferList.get(2);
-      oldVps = byteBufferList.get(0);
-      getVideoData.onSpsPpsVps(oldSps, oldPps, oldVps);
-      //H264
-    } else {
-      oldSps = mediaFormat.getByteBuffer("csd-0");
-      oldPps = mediaFormat.getByteBuffer("csd-1");
-      oldVps = null;
-      getVideoData.onSpsPpsVps(oldSps, oldPps, oldVps);
-    }
-  }*/
+
 
   /**
    * decode sps and pps if the encoder never call to MediaCodec.INFO_OUTPUT_FORMAT_CHANGED
@@ -366,11 +326,11 @@ public static byte[] imageToByteArray(BufferedImage image) {
 
   @Override
   protected Frame getInputFrame() throws InterruptedException {
-    Frame frame = queue.take();
+    Frame frame = queue.pop();
     if (frame == null) return null;
     if (fpsLimiter.limitFPS()) return getInputFrame();
    // byte[] buffer = frame.getBuffer();
-    boolean isYV12 = frame.getFormat() == 20;//ImageFormat.YV12;
+ //   boolean isYV12 = frame.getFormat() == 20;//ImageFormat.YV12;
 
 //    int orientation = frame.isFlip() ? frame.getOrientation() + 180 : frame.getOrientation();
 //    if (orientation >= 360) orientation -= 360;
@@ -387,7 +347,7 @@ public static byte[] imageToByteArray(BufferedImage image) {
 
   @Override
   protected void checkBuffer(@NotNull ByteBuffer byteBuffer, @NotNull MediaBufferInfo bufferInfo) {
-      forceKey = false;
+      //forceKey = false;
      // requestKeyframe();
     fixTimeStamp(bufferInfo);
     if (!spsPpsSetted && type.equals(CodecUtil.H264_MIME)) {

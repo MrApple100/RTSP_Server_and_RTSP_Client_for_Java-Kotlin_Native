@@ -1,11 +1,7 @@
 package mrapple100.utils
 
+
 import mrapple100.Client.rtsp.codec.FrameQueue
-
-
-import mrapple100.Server.encoder.Frame
-import mrapple100.Server.encoder.utils.yuv.YUVUtil
-import mrapple100.Server.rtspserver.RtspServerCamera1
 import org.bytedeco.ffmpeg.avcodec.AVCodec
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext
 import org.bytedeco.ffmpeg.avcodec.AVPacket
@@ -14,10 +10,12 @@ import org.bytedeco.ffmpeg.avutil.AVFrame
 import org.bytedeco.ffmpeg.global.avcodec
 import org.bytedeco.ffmpeg.global.avcodec.av_packet_unref
 import org.bytedeco.ffmpeg.global.avutil
-import org.bytedeco.ffmpeg.global.avutil.*
-import org.bytedeco.ffmpeg.global.swscale.*
+import org.bytedeco.ffmpeg.global.avutil.av_frame_free
+import org.bytedeco.ffmpeg.global.swscale.sws_getContext
+import org.bytedeco.ffmpeg.global.swscale.sws_scale
 import org.bytedeco.ffmpeg.swscale.SwsContext
-import org.bytedeco.javacpp.*
+import org.bytedeco.javacpp.BytePointer
+import org.bytedeco.javacpp.DoublePointer
 import java.awt.Image
 import java.awt.Toolkit
 import java.awt.Transparency
@@ -190,6 +188,7 @@ class VideoDecodeThreadTest (
                                 framePlace.icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(600,800, Image.SCALE_DEFAULT))
 
 
+                                baos.reset()
                                 av_packet_unref(packet)
                                 av_frame_free(frame)
                                 av_frame_free(rgbFrame)

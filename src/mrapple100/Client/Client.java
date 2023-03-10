@@ -1,8 +1,8 @@
 package mrapple100.Client;
 
+import mrapple100.Client.rtsp.widget.RtspSurfaceView;
 import mrapple100.Server.CustomConnectCheckerRTSP;
 import mrapple100.Server.rtspserver.RtspServerCamera1;
-import mrapple100.Client.rtsp.widget.RtspSurfaceView;
 import mrapple100.utils.FrameSynchronizer;
 
 import javax.swing.*;
@@ -145,7 +145,7 @@ public class Client {
         //get server RTSP port and IP address from the command line
         //------------------
                 RTSP_server_port = "1935";
-        ServerHost = "172.30.221.208";
+        ServerHost = "172.30.221.30";
         theClient.ServerIPAddr = InetAddress.getByName(ServerHost);
 
         //get video filename to request:

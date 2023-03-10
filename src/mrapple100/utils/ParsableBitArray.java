@@ -15,11 +15,11 @@ package mrapple100.utils;
  * limitations under the License.
  */
 
-import static java.lang.Math.min;
-
 import kotlin.text.Charsets;
 
 import java.nio.charset.Charset;
+
+import static java.lang.Math.min;
 
 /** Wraps a byte array, providing methods that allow it to be read as a bitstream. */
 public final class ParsableBitArray {
