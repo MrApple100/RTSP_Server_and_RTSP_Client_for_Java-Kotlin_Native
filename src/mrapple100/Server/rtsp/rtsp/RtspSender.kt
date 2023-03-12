@@ -82,7 +82,7 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
     try {
       rtpFrameBlockingQueue.add(rtpFrame)
     } catch (e: IllegalStateException) {
-    //  Log.i(TAG, "Video frame discarded")
+      println("Video frame discarded")
       droppedVideoFrames++
     }
   }

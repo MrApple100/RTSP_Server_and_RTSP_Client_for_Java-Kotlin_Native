@@ -22,7 +22,7 @@ class FrameQueueSend(frameQueueSize: Int) {
     @Throws(InterruptedException::class)
     fun pop(): Frame? {
         try {
-            val frame: Frame? = queue.poll(5, TimeUnit.MILLISECONDS)
+            val frame: Frame? = queue.poll(1000, TimeUnit.MILLISECONDS)
             if (frame == null) {
                 //  Log.w(TAG, "Cannot get frame, queue is empty")
             }

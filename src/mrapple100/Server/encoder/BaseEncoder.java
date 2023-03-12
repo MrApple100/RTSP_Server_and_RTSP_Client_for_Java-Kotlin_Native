@@ -181,25 +181,29 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     private void processOutput(@NotNull ByteBuffer byteBuffer, @NotNull MediaBufferInfo bufferInfo) throws IllegalStateException {
         checkBuffer(byteBuffer, bufferInfo);
+       // long time1 = System.currentTimeMillis();
+        sendBuffer(byteBuffer, bufferInfo);
+      //  long time2 = System.currentTimeMillis();
+      //  System.out.println("TIME "+(time2-time1));
         //Debug second screen
-        try {
-          //  System.out.println("PUSH");
-            videoFrameQueue.push(new FrameQueue.Frame(byteBuffer.array(),0,byteBuffer.array().length,System.currentTimeMillis()));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        if(videoDecodeThreadTest==null){
-            videoDecodeThreadTest = new VideoDecodeThreadTest(rtspServer.getFrameAfterPlace(),videoFrameQueue);
-            videoDecodeThreadTest.start();
-        }
+//        try {
+//          //  System.out.println("PUSH");
+//            videoFrameQueue.push(new FrameQueue.Frame(byteBuffer.array(),0,byteBuffer.array().length,System.currentTimeMillis()));
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        if(videoDecodeThreadTest==null){
+//            videoDecodeThreadTest = new VideoDecodeThreadTest(rtspServer.getFrameAfterPlace(),videoFrameQueue);
+//            videoDecodeThreadTest.start();
+//        }
 
-       new Thread(new Runnable() {
-           @Override
-           public void run() {
-               sendBuffer(byteBuffer, bufferInfo);
+//       new Thread(new Runnable() {
+//           @Override
+//           public void run() {
 
-           }
-       }).start();
+
+//           }
+//       }).start();
     }
 
     public void setForce(CodecUtil.Force force) {
@@ -256,8 +260,7 @@ public abstract class BaseEncoder implements EncoderCallback {
 
         AVPacket packet = av_packet_alloc();
         AVFrame frame = av_frame_alloc();
-        AVDictionary opts = new AVDictionary();
-        avcodec_open2(c, codec, opts);
+
 
 
         try( BytePointer bp = new BytePointer(yuvData)) {
@@ -361,6 +364,8 @@ public abstract class BaseEncoder implements EncoderCallback {
                         bufferInfo.size=bytes.length;
                         bufferInfo.flags = MediaCodec.BUFFER_FLAG_KEY_FRAME;
                         bufferInfo.offset = 0;
+                        d.close();
+
                         return bytes;
                     }else{
 
@@ -369,17 +374,20 @@ public abstract class BaseEncoder implements EncoderCallback {
                         // System.out.println(DecodeUtil.byteArrayToHexString(bytes).length());
                         // System.out.println(DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"));
                         // System.out.println((bytes.length*2-DecodeUtil.byteArrayToHexString(bytes).indexOf("000000165"))/2);
-                        int pos0165 =DecodeUtil.byteArrayToHexString(bytes).indexOf(CONST0165)/2;
-                        int size = bytes.length-pos0165+1;
+                        int pos0165 =DecodeUtil.byteArrayToHexString(bytes).indexOf(CONST0165);
+                       // System.out.println(pos0165);
+                        int size = (bytes.length*2-pos0165)/2+1;
                         byte[] withoutspspps = new byte[size];
-                        System.arraycopy(bytes,pos0165+1,withoutspspps,1,size);
+                        System.arraycopy(bytes,pos0165/2+1,withoutspspps,1,size-1);
                         bufferInfo.size=withoutspspps.length;
                         bufferInfo.flags = MediaCodec.BUFFER_FLAG_KEY_FRAME;
                         bufferInfo.offset = 0;
+                        d.close();
+
                         return withoutspspps;
                     }
-                }
 
+                }
 
 
 
@@ -389,10 +397,10 @@ public abstract class BaseEncoder implements EncoderCallback {
             e.printStackTrace();
 
         }finally {
+
             av_frame_free(frame);
             //av_packet_free(packet);
             av_packet_unref(packet);
-            av_dict_free(opts);
 
 
         }

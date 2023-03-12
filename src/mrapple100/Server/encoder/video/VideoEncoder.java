@@ -24,6 +24,7 @@ import mrapple100.Server.encoder.input.video.FpsLimiter;
 import mrapple100.Server.encoder.utils.CodecUtil;
 import mrapple100.Server.encoder.utils.yuv.YUVUtil;
 import mrapple100.Server.rtspserver.RtspServerCamera1;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.jetbrains.annotations.NotNull;
 
@@ -107,6 +108,8 @@ public class VideoEncoder extends BaseEncoder {
     c.gop_size(1);
     //c.max_b_frames(0);
     c.pix_fmt(AV_PIX_FMT_YUV420P);
+      AVDictionary opts = new AVDictionary();
+      avcodec_open2(c, codec, opts);
     PTS_of_last_frame = av_gettime();
     time_elapsed_since_PTS_value_was_set = PTS_of_last_frame;
   }catch (Exception e){
