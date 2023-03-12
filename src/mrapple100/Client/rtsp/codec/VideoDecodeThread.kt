@@ -268,7 +268,7 @@ class VideoDecodeThread (
 //                                        opencv_imgproc.cvCvtColor(iplImage, iplImage, opencv_imgproc.CV_RGB2YUV)
                                        // val yuv420 = YUVUtil.convertRgbToYuv420(output,context.width(),context.height())
 
-                                     //   rtspServer.inputYUVData(rtspServer,Frame(outputyuv, 0, 0))
+                                        rtspServer.inputYUVData(rtspServer,Frame(outputyuv, 0, 0))
                                         //iplImage.deallocate()
                                        // sws_freeContext(swsContext2)
                                    // av_frame_free(frame)

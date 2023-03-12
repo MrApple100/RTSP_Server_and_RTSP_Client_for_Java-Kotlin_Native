@@ -10,6 +10,7 @@ import org.bytedeco.ffmpeg.avutil.AVFrame
 import org.bytedeco.ffmpeg.global.avcodec
 import org.bytedeco.ffmpeg.global.avcodec.av_packet_unref
 import org.bytedeco.ffmpeg.global.avutil
+import org.bytedeco.ffmpeg.global.avutil.av_frame_alloc
 import org.bytedeco.ffmpeg.global.avutil.av_frame_free
 import org.bytedeco.ffmpeg.global.swscale.sws_getContext
 import org.bytedeco.ffmpeg.global.swscale.sws_scale
@@ -38,10 +39,15 @@ class VideoDecodeThreadTest (
     private val context: AVCodecContext = avcodec.avcodec_alloc_context3(codec);
     private val opts = AVDictionary()
 
-    private var swsContext: SwsContext? = null
+    var swsContext: SwsContext? = null
+    var size:Int? =null
+    var buffer: BytePointer?=null
+    var output:ByteArray? =null
 
 
 
+
+    private var frameq: FrameQueue.Frame? =null
 
 
     private var exitFlag: AtomicBoolean = AtomicBoolean(false)
@@ -60,27 +66,27 @@ class VideoDecodeThreadTest (
 
         try {
 
+            avcodec.avcodec_open2(context, codec, opts)
 
 
 
             // Main loop
             while (!exitFlag.get()) {
-               // println("TEST HERE")
 
                 // Preventing BufferOverflowException
                 // if (length > byteBuffer.limit()) throw DecoderFatalException("Error")
 
-                val h264bytes = videoFrameQueue.pop()
-                if (h264bytes == null) {
+                frameq = videoFrameQueue.pop()
+                if (frameq == null) {
                     //    Log.d(TAG, "Empty video frame")
                     // Release input buffer
                 } else {
-                    if(h264bytes!!.data[4]== "103".toByte()){
-                        spspps = h264bytes.data!!
-                       // println("103TEST "+DecodeUtil.byteArrayToHexString(h264bytes.data).subSequence(0,50))
+                    if(frameq!!.data[4]== "103".toByte()){
+                        spspps = frameq!!.data
+                        //println("103 "+DecodeUtil.byteArrayToHexString(spspps).subSequence(0,50))
                     }else{
-                        val datasrc = h264bytes!!.data
-                       // println("OSTTEST "+DecodeUtil.byteArrayToHexString(h264bytes!!.data).subSequence(0,50))
+                        val datasrc = frameq!!.data
+                        //println("OST "+DecodeUtil.byteArrayToHexString(frameq!!.data).subSequence(0,50))
 
                         //   println(DecodeUtil.byteArrayToHexString(datasrc))
 
@@ -96,10 +102,9 @@ class VideoDecodeThreadTest (
 
                             val frame: AVFrame = avutil.av_frame_alloc();
                             val packet: AVPacket = AVPacket()
-
                             val rgbFrame: AVFrame = avutil.av_frame_alloc()
 
-                            avcodec.avcodec_open2(context, codec, opts)
+
 
                             // }
                             av_packet_unref(packet)
@@ -109,6 +114,7 @@ class VideoDecodeThreadTest (
                             //  println("ADDRESS " + "${framepointer.address()}")
                             packet.data(framepointer)
 
+                            // println("THREAD "+packet.pts())
 
 
                             packet.size(spsppsAndFrame.size)
@@ -118,11 +124,12 @@ class VideoDecodeThreadTest (
                             } else {
                                 //   println("${context.width()} ${context.height()}")
 
-                                swsContext = sws_getContext(
-                                        context.width(), context.height(), context.pix_fmt(),
-                                        context.width(), context.height(), avutil.AV_PIX_FMT_RGB24,
-                                        0, null, null, DoublePointer())
-
+                                if(swsContext==null) {
+                                    swsContext = sws_getContext(
+                                            context.width(), context.height(), context.pix_fmt(),
+                                            context.width(), context.height(), avutil.AV_PIX_FMT_RGB24,
+                                            0, null, null, DoublePointer())
+                                }
                                 var whileenter = 0;
                                 // while (ret >= 0) {
                                 //  println("OKOKOKOK0")
@@ -144,18 +151,22 @@ class VideoDecodeThreadTest (
 //                            } else if (ret < 0) {
 //                                break
 //                            }
+                                //  println("THREADFrame "+frame.pts())
 
                                 //  println("${++whileenter}")
                                 //   println("NICE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                                 //println("${swsContext}")
                                 //  println("NICE2")
-                                val size = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_RGB24, context.width(), context.height(), 1)
-                                val buffer: BytePointer = BytePointer(avutil.av_malloc(size.toLong()))
+                                if(buffer==null) {
+                                    size = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_RGB24, context.width(), context.height(), 1)
+                                    buffer = BytePointer(avutil.av_malloc(size!!.toLong()))
+                                    output = ByteArray(size!!)
+                                }
                                 avutil.av_image_fill_arrays(rgbFrame.data(), rgbFrame.linesize(), buffer, avutil.AV_PIX_FMT_RGB24, context.width(), context.height(), 1)
                                 //  println("Nice3")
                                 sws_scale(swsContext, frame.data(), frame.linesize(), 0, context.height(), rgbFrame.data(), rgbFrame.linesize())
-                                val output = ByteArray(size)
-                                buffer.get(output)
+
+                                buffer!!.get(output)
 
 
 
@@ -165,9 +176,7 @@ class VideoDecodeThreadTest (
                                 //display the image as an ImageIcon object
                                 //println("Success!")
                                 // println("output : ${output[0]} ${output[1]} ${output[2]} ${output.size}")
-                                var img = createRGBImage(output, context.width(), context.height())
-
-                                //println("IMG "+DecodeUtil.byteArrayToHexString(output).subSequence(0,100))
+                                var img = createRGBImage(output!!, context.width(), context.height())
                                 //  println("img : ${(img!!.raster.dataBuffer as DataBufferByte).data[0]} ${(img!!.raster.dataBuffer as DataBufferByte).data[1]} ${(img!!.raster.dataBuffer as DataBufferByte).data[2]} ${output.size}")
 
                                 var baos: ByteArrayOutputStream? = null
@@ -180,30 +189,23 @@ class VideoDecodeThreadTest (
                                     } catch (e: java.lang.Exception) {
                                     }
                                 }
-                                //   println("baos : ${baos!!.toByteArray()[0]} ${baos.toByteArray()[1]} ${baos.toByteArray()[2]} ${baos.toByteArray().size}" )
 
-                                //   println("Success!")
+                                framePlace.icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(500,800, Image.SCALE_DEFAULT))
 
-                                //   println(""+System.currentTimeMillis()+" "+baos!!.toByteArray().size)
-                                framePlace.icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(600,800, Image.SCALE_DEFAULT))
-
-
-                                baos.reset()
+                                img!!.flush()
+                                baos!!.reset()
+                                //buffer.close() no need
+                                //bufferyuv.close() no need
+                                framepointer.close()
                                 av_packet_unref(packet)
                                 av_frame_free(frame)
                                 av_frame_free(rgbFrame)
-//                    avcodec_close(context)
-//                    avcodec_free_context(context)
-//
-//                    sws_freeContext(swsContext)
-                                //////////////////////////////////////////////////////////////////
                             }
                         } catch (e:Exception){
                             println(e.localizedMessage)
                         }
 
                     }
-                    // println("${frameq.data[4]}")
                 }
 
 
@@ -231,7 +233,7 @@ class VideoDecodeThreadTest (
 
 
     companion object {
-       // private val TAG: String = VideoDecodeThread::class.java.simpleName
+        private val TAG: String = mrapple100.utils.VideoDecodeThreadTest::class.java.simpleName
         private const val DEBUG = false
     }
 
@@ -247,6 +249,7 @@ class VideoDecodeThreadTest (
         rgb[2] = argbHex and 0xFF //get blue
         return rgb //return array
     }
+
 
 }
 
