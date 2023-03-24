@@ -94,6 +94,7 @@ open class H264Packet(sps: ByteArray, pps: ByteArray, private val videoPacketCal
           updateSeq(buffer)
           val rtpFrame = RtpFrame(buffer, rtpTs, buffer.size, rtpPort, rtcpPort, channelIdentifier)
           videoPacketCallback.onVideoFrameCreated(rtpFrame)
+
           // Switch start bit
           header[1] = header[1] and 0x7F
         }

@@ -51,7 +51,7 @@ open class ServerClient(private val socket: Socket, serverIp: String, serverPort
           continue
         }
         val response = commandsManager.createResponse(request.method, request.text, cSeq)
-        println(response)
+        //println(response)
         output.write(response)
         output.flush()
 

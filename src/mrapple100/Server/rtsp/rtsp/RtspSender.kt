@@ -60,7 +60,7 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
    * @return number of packets
    */
   private val defaultCacheSize: Int
-    get() = 10 * 1024 * 1024 / RtpConstants.MTU
+    get() = 10 * 1024 * 1024  / RtpConstants.MTU
 
   @Throws(IOException::class)
   fun setDataStream(outputStream: OutputStream, host: String) {
@@ -82,7 +82,7 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
     try {
       rtpFrameBlockingQueue.add(rtpFrame)
     } catch (e: IllegalStateException) {
-      println("Video frame discarded")
+      //println("Video frame discarded")
       droppedVideoFrames++
     }
   }
@@ -101,9 +101,9 @@ open class RtspSender(private val connectCheckerRtsp: ConnectCheckerRtsp) : Vide
 
       while (!Thread.interrupted() && running) {
         try {
-          val rtpFrame = rtpFrameBlockingQueue.poll(1, TimeUnit.SECONDS)
+          val rtpFrame = rtpFrameBlockingQueue.poll(1, TimeUnit.SECONDS)//1
           if (rtpFrame == null) {
-         //   Log.i(TAG, "Skipping iteration, frame null")
+            println("Skipping iteration, frame null")
             continue
           }
           rtpSocket?.sendFrame(rtpFrame, isEnableLogs)

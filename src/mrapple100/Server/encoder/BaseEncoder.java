@@ -154,7 +154,7 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     protected abstract Frame getInputFrame() throws InterruptedException;
 
-    protected abstract long calculatePts(Frame frame, long presentTimeUs);
+    protected abstract long calculatePts( long presentTimeUs);
 
     private void processInput( MediaBufferInfo bufferInfo ) throws IllegalStateException {
         try {
@@ -163,8 +163,8 @@ public abstract class BaseEncoder implements EncoderCallback {
 //      byteBuffer.clear();
 //      int size = Math.max(0, Math.min(frame.getSize(), byteBuffer.remaining()) - frame.getOffset());
 //      byteBuffer.put(frame.getBuffer(), frame.getOffset(), size);
-      long pts = calculatePts(frame, presentTimeUs);
-      bufferInfo.presentationTimeUs = pts;
+            long pts = calculatePts(presentTimeUs);
+            bufferInfo.presentationTimeUs = pts;
             queuebb.add(frame);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -180,27 +180,28 @@ public abstract class BaseEncoder implements EncoderCallback {
                                        @NotNull MediaBufferInfo bufferInfo);
 
     private void processOutput(@NotNull ByteBuffer byteBuffer, @NotNull MediaBufferInfo bufferInfo) throws IllegalStateException {
+//        long pts = calculatePts(presentTimeUs);
+//        bufferInfo.presentationTimeUs = pts;
         checkBuffer(byteBuffer, bufferInfo);
        // long time1 = System.currentTimeMillis();
-        sendBuffer(byteBuffer, bufferInfo);
+
       //  long time2 = System.currentTimeMillis();
       //  System.out.println("TIME "+(time2-time1));
-        //Debug second screen
-//        try {
-//          //  System.out.println("PUSH");
-//            videoFrameQueue.push(new FrameQueue.Frame(byteBuffer.array(),0,byteBuffer.array().length,System.currentTimeMillis()));
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        if(videoDecodeThreadTest==null){
-//            videoDecodeThreadTest = new VideoDecodeThreadTest(rtspServer.getFrameAfterPlace(),videoFrameQueue);
-//            videoDecodeThreadTest.start();
-//        }
-
+//        Debug second screen
+        try {
+          //  System.out.println("PUSH");
+            videoFrameQueue.push(new FrameQueue.Frame(byteBuffer.array(),0,byteBuffer.array().length,System.currentTimeMillis()));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        if(videoDecodeThreadTest==null){
+            videoDecodeThreadTest = new VideoDecodeThreadTest(rtspServer.getFrameAfterPlace(),videoFrameQueue);
+            videoDecodeThreadTest.start();
+        }
 //       new Thread(new Runnable() {
 //           @Override
 //           public void run() {
-
+        sendBuffer(byteBuffer, bufferInfo);
 
 //           }
 //       }).start();
@@ -231,6 +232,7 @@ public abstract class BaseEncoder implements EncoderCallback {
 
         //need convert byteBuffer(yuv420) to h264
         byte[] h264 = encodeYuvToH264(byteBuffer.array(),bufferInfo);
+
 //        if(!spsppssetted){
 //            spsppssetted=true;
 //            h264 = byteBuffer.array();
@@ -297,9 +299,9 @@ public abstract class BaseEncoder implements EncoderCallback {
         //    System.out.println("FRAMEPTS " +frame.pts());
           //  packet.pts(100000*c.time_base().num()/c.time_base().den());
 
-            if(packet==null){
-                //System.out.println("Не удалось выделить память для пакета");
-            }
+//            if(packet==null){
+//                //System.out.println("Не удалось выделить память для пакета");
+//            }
 
 
             int ret;

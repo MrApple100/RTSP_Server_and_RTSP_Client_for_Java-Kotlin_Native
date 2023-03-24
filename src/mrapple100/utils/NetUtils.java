@@ -92,7 +92,7 @@ public class NetUtils {
     @NotNull
     public static Socket createSocketAndConnect(@NotNull String dstName, int dstPort, int timeout) throws IOException {
       //  if (DEBUG)
-        System.out.println("dstName=" + dstName + ", dstPort=" + dstPort + ", timeout=" + timeout + ")");
+        //System.out.println("dstName=" + dstName + ", dstPort=" + dstPort + ", timeout=" + timeout + ")");
         Socket socket = new Socket(InetAddress.getByName(dstName),dstPort);
        // socket.connect(InetAddress.getByName(dstName),dstPort, timeout);
         socket.setSoLinger(false, 1);

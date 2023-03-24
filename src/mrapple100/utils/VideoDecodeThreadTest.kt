@@ -10,7 +10,6 @@ import org.bytedeco.ffmpeg.avutil.AVFrame
 import org.bytedeco.ffmpeg.global.avcodec
 import org.bytedeco.ffmpeg.global.avcodec.av_packet_unref
 import org.bytedeco.ffmpeg.global.avutil
-import org.bytedeco.ffmpeg.global.avutil.av_frame_alloc
 import org.bytedeco.ffmpeg.global.avutil.av_frame_free
 import org.bytedeco.ffmpeg.global.swscale.sws_getContext
 import org.bytedeco.ffmpeg.global.swscale.sws_scale
@@ -65,6 +64,8 @@ class VideoDecodeThreadTest (
         //   if (DEBUG) Log.d(TAG, "$name started")
 
         try {
+            avutil.av_opt_set(context.priv_data(), "tune", "fastdecode", 0) //?
+
 
             avcodec.avcodec_open2(context, codec, opts)
 
@@ -217,6 +218,7 @@ class VideoDecodeThreadTest (
 //                 //   if (DEBUG) Log.d(TAG, "OutputBuffer BUFFER_FLAG_END_OF_STREAM")
 //                    break
 //                }
+
             }
 
             videoFrameQueue.clear()
