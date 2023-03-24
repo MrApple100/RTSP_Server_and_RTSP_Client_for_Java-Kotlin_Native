@@ -16,8 +16,6 @@ import org.bytedeco.ffmpeg.global.swscale.sws_scale
 import org.bytedeco.ffmpeg.swscale.SwsContext
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.javacpp.DoublePointer
-import org.bytedeco.javacpp.Pointer
-import org.bytedeco.javacpp.PointerPointer
 import java.awt.Image
 import java.awt.Toolkit
 import java.awt.Transparency
@@ -75,7 +73,7 @@ class VideoDecodeThread (
 
         try {
 
-
+            av_opt_set(context.priv_data(), "tune", "fastdecode", 0) //?
 
 
             // Main loop
