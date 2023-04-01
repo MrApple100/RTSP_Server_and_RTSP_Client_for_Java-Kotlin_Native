@@ -64,7 +64,7 @@ class VideoDecodeThreadTest (
         //   if (DEBUG) Log.d(TAG, "$name started")
 
         try {
-            avutil.av_opt_set(context.priv_data(), "tune", "fastdecode", 0) //?
+          //  avutil.av_opt_set(context.priv_data(), "tune", "fastdecode", 0) //?
 
 
             avcodec.avcodec_open2(context, codec, opts)

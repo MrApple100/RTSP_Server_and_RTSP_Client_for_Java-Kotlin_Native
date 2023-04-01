@@ -9,6 +9,7 @@ application {
 }
 sourceSets.main.java.srcDirs = ['src']
 
+
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
@@ -17,6 +18,10 @@ buildscript {
     repositories {
         mavenLocal()
         mavenCentral()
+        maven {
+            url "https://developer.ptc.com/repository/nexus-public"
+        }
+
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
@@ -26,9 +31,22 @@ buildscript {
 repositories {
     mavenLocal()
     mavenCentral()
+    maven {
+        url "https://developer.ptc.com/repository/nexus-public"
+    }
+
 }
 dependencies {
-   // implementation group: 'org.bytedeco', name: 'javacv', version: '1.5.8'
+   // implementation files('VuforiaSDK/build/bin/x64/Vuforia.dll')
+   // implementation files('VuforiaSDK/build/bin/x64/Vuforia.lib')
+//    runtimeOnly files('VuforiaSDK/build/bin/x64/VuforiaEngine.dll')
+
+    //implementation fileTree(dir:'VuforiaSDK/build/bin/x64/',include: ['*.lib'])
+
+   // implementation 'com.ptc.vuforia:vuforia-engine:10.0.0'
+
+
+    // implementation group: 'org.bytedeco', name: 'javacv', version: '1.5.8'
   //  implementation group: 'org.bytedeco', name: 'opencv-platform-gpu', version: '4.6.0-1.5.8'
     implementation group: 'org.bytedeco', name: 'ffmpeg-platform-gpl', version: '5.1.2-1.5.8'
 
@@ -36,6 +54,10 @@ dependencies {
    // implementation group: 'org.bytedeco.javacpp-presets', name: 'opencv-platform', version: '+'
    // implementation group: 'org.bytedeco.javacpp-presets', name: 'ffmpeg-platform', version: '+'
     // implementation "commons-io:commons-io:+"
+
+   // implementation 'com.vuforia.engine:vuforia-engine:10-5-9'
+ //   implementation 'org.openpnp:opencv:3.4.9-1'
+
 
 
 

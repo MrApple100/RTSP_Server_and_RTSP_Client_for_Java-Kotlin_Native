@@ -3,6 +3,7 @@ package mrapple100.Client;
 import mrapple100.Client.rtsp.widget.RtspSurfaceView;
 import mrapple100.Server.CustomConnectCheckerRTSP;
 import mrapple100.Server.rtspserver.RtspServerCamera1;
+import mrapple100.WaysDetect.Operator.DrawingBoard;
 import mrapple100.utils.FrameSynchronizer;
 
 import javax.swing.*;
@@ -33,6 +34,9 @@ public class Client {
     JLabel frameAfterPlace = new JLabel();
     JLabel iplabel = new JLabel();
     JButton sendButton = new JButton("Send");
+
+
+    JPanel drawingBoard = new DrawingBoard();
 
 
 
@@ -94,6 +98,7 @@ public class Client {
         mainPanel.add(frameAfterPlace);
         mainPanel.add(buttonPanel);
         mainPanel.add(buttonPanel2);
+      //  mainPanel.add(drawingBoard);
 
         // mainPanel.add(sendButton);
         mainPanel.add(statLabel1);
@@ -102,6 +107,7 @@ public class Client {
         mainPanel.add(iplabel);
         framePlace.setBounds(0,0,500,1000);
         frameAfterPlace.setBounds(800,0,500,1000);
+        //drawingBoard.setBounds(800,0,500,1000);
         iplabel.setBounds(1000,900,380,50);
         buttonPanel.setBounds(200,900,380,50);
         buttonPanel2.setBounds(600,900,380,50);
@@ -111,6 +117,9 @@ public class Client {
         statLabel3.setBounds(500,990,380,20);
 
         f.getContentPane().add(mainPanel, BorderLayout.CENTER);
+
+
+
         f.setSize(new Dimension(1200,1200));
         f.setVisible(true);
 
@@ -145,7 +154,7 @@ public class Client {
         //get server RTSP port and IP address from the command line
         //------------------
                 RTSP_server_port = "1935";
-        ServerHost = "192.168.19.208";//172.30.221.30
+        ServerHost = "192.168.121.71";//172.30.221.30
         theClient.ServerIPAddr = InetAddress.getByName(ServerHost);
 
         //get video filename to request:

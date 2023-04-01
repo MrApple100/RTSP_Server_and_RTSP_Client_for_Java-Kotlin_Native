@@ -73,7 +73,6 @@ class VideoDecodeThread (
 
         try {
 
-            av_opt_set(context.priv_data(), "tune", "fastdecode", 0) //?
 
 
             // Main loop
