@@ -7,8 +7,10 @@ import mrapple100.Server.MediaBufferInfo
 import mrapple100.Server.encoder.utils.CodecUtil
 import mrapple100.Server.rtplibrary.base.Camera1Base
 import mrapple100.Server.rtsp.utils.ConnectCheckerRtsp
+import mrapple100.WaysDetect.Operator.DrawingBoard
 import java.nio.ByteBuffer
 import javax.swing.JLabel
+import javax.swing.JPanel
 
 /**
  * Created by pedro on 13/02/19.
@@ -16,13 +18,16 @@ import javax.swing.JLabel
 open class RtspServerCamera1 : Camera1Base {
 
     private val frameAfterPlace: JLabel
+    private val drawingBoard: DrawingBoard
     private val rtspServer: RtspServer
 
-  constructor(frame:JLabel, connectCheckerRtsp: ConnectCheckerRtsp, port: Int) : super() {
+  constructor(frame:JLabel,drawingBoard: DrawingBoard, connectCheckerRtsp: ConnectCheckerRtsp, port: Int) : super() {
+      this.drawingBoard = drawingBoard
       frameAfterPlace = frame
       rtspServer = RtspServer(connectCheckerRtsp, port)
   }
 
+fun getDrawingBoard():DrawingBoard = drawingBoard
 
 fun getFrameAfterPlace():JLabel = frameAfterPlace
 

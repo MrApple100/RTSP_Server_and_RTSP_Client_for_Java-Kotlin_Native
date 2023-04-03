@@ -26,6 +26,7 @@ public class Client {
     JPanel mainPanel = new JPanel();
     JPanel buttonPanel = new JPanel();
     JPanel buttonPanel2 = new JPanel();
+    JPanel buttonPanel3 = new JPanel();
     JLabel statLabel1 = new JLabel();
     JLabel statLabel2 = new JLabel();
     JLabel statLabel3 = new JLabel();
@@ -36,7 +37,8 @@ public class Client {
     JButton sendButton = new JButton("Send");
 
 
-    JPanel drawingBoard = new DrawingBoard();
+    DrawingBoard drawingBoard = new DrawingBoard(800,500);
+    JButton clearButton = new JButton("ClearDraw");
 
 
 
@@ -79,9 +81,13 @@ public class Client {
         buttonPanel.add(playButton);
         buttonPanel2.setLayout(new GridLayout(1,0));
         buttonPanel2.add(sendButton);
+        buttonPanel3.setLayout(new GridLayout(1,0));
+        buttonPanel3.add(clearButton);
 
         playButton.addActionListener(new playButtonListener());
         sendButton.addActionListener(new sendButtonListener());
+        clearButton.addActionListener(new clearButtonListener());
+
 
 
         //Statistics
@@ -98,19 +104,22 @@ public class Client {
         mainPanel.add(frameAfterPlace);
         mainPanel.add(buttonPanel);
         mainPanel.add(buttonPanel2);
-      //  mainPanel.add(drawingBoard);
+        mainPanel.add(buttonPanel3);
+        mainPanel.add(drawingBoard);
 
-        // mainPanel.add(sendButton);
+       // mainPanel.add(sendButton);
         mainPanel.add(statLabel1);
         mainPanel.add(statLabel2);
         mainPanel.add(statLabel3);
         mainPanel.add(iplabel);
-        framePlace.setBounds(0,0,500,1000);
-        frameAfterPlace.setBounds(800,0,500,1000);
-        //drawingBoard.setBounds(800,0,500,1000);
+        mainPanel.setBackground(Color.cyan);
+        framePlace.setBounds(0,0,800,500);
+        frameAfterPlace.setBounds(850,0,800,500);
+        drawingBoard.setBounds(0,0,800,500);
         iplabel.setBounds(1000,900,380,50);
         buttonPanel.setBounds(200,900,380,50);
         buttonPanel2.setBounds(600,900,380,50);
+        buttonPanel3.setBounds(400,600,380,50);
 
         statLabel1.setBounds(500,950,380,20);
         statLabel2.setBounds(500,970,380,20);
@@ -120,7 +129,7 @@ public class Client {
 
 
 
-        f.setSize(new Dimension(1200,1200));
+        f.setSize(new Dimension(1600,1200));
         f.setVisible(true);
 
         //init timer
@@ -147,14 +156,15 @@ public class Client {
 
         //Create a mrapple100.Client.Client object
         Client theClient = new Client();
-        rtspServerCamera1 = new RtspServerCamera1(theClient.frameAfterPlace, new CustomConnectCheckerRTSP(), 1936);
+
+        rtspServerCamera1 = new RtspServerCamera1(theClient.frameAfterPlace,theClient.drawingBoard, new CustomConnectCheckerRTSP(), 1936);
 
         rtcpSurfaceView = new RtspSurfaceView(theClient.framePlace,rtspServerCamera1);
 
         //get server RTSP port and IP address from the command line
         //------------------
                 RTSP_server_port = "1935";
-        ServerHost = "192.168.121.71";//172.30.221.30
+        ServerHost = "172.21.218.208";//"192.168.121.71";
         theClient.ServerIPAddr = InetAddress.getByName(ServerHost);
 
         //get video filename to request:
@@ -220,6 +230,26 @@ public class Client {
                 rtspServerCamera1.stopStream();
                 iplabel.setText("");
             }
+
+        }
+    }
+
+    class clearButtonListener implements ActionListener {
+
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("HUHU"+drawingBoard.getImage().getWidth());
+            Graphics2D g2d =(Graphics2D)  drawingBoard.getImage().getGraphics();
+            //g2d.setColor(new Color(1f, 1f, 1f, 0.0f)); // установка прозрачного цвета
+            g2d.clearRect(0, 0, drawingBoard.getImage().getWidth(), drawingBoard.getImage().getHeight()); // очистка рисунка
+           // drawingBoard.getGraphics().fillRect(0, 0, drawingBoard.getImage().getWidth(), drawingBoard.getImage().getHeight());
+
+            // Настройте прозрачность фона
+            g2d.setComposite(AlphaComposite.Clear);
+            g2d.fillRect(0, 0, drawingBoard.getImage().getWidth(), drawingBoard.getImage().getHeight());
+
+// Настройте кисть
+            g2d.setComposite(AlphaComposite.SrcOver.derive(1.0f)); // установите альфа-значение равным 1.0
+            g2d.dispose();
 
         }
     }
