@@ -64,7 +64,7 @@ class VideoDecodeThreadTest (
         //   if (DEBUG) Log.d(TAG, "$name started")
 
         try {
-          //  avutil.av_opt_set(context.priv_data(), "tune", "fastdecode", 0) //?
+            avutil.av_opt_set(context.priv_data(), "tune", "fastdecode", 0) //?
 
 
             avcodec.avcodec_open2(context, codec, opts)
@@ -191,7 +191,7 @@ class VideoDecodeThreadTest (
                                     }
                                 }
 
-                                framePlace.icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(500,800, Image.SCALE_DEFAULT))
+                                framePlace.icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(800,500, Image.SCALE_DEFAULT))
 
                                 img!!.flush()
                                 baos!!.reset()

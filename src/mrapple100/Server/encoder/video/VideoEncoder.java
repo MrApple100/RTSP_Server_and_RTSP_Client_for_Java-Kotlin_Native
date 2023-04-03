@@ -108,8 +108,8 @@ public class VideoEncoder extends BaseEncoder {
     //c.max_b_frames(0);
     c.pix_fmt(AV_PIX_FMT_YUV420P);
       AVDictionary opts = new AVDictionary();
-   //   av_opt_set(c.priv_data(),"preset","ultrafast",0);//? мейби менять
-   //   av_opt_set(c.priv_data(),"tune","zerolatency",0);//?
+      av_opt_set(c.priv_data(),"preset","ultrafast",0);//? мейби менять
+      av_opt_set(c.priv_data(),"tune","zerolatency",0);//?
 
       avcodec_open2(c, codec, opts);
     PTS_of_last_frame = av_gettime();
