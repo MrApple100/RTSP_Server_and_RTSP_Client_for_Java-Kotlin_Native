@@ -2,6 +2,7 @@ package mrapple100.Client.rtsp.codec
 
 import mrapple100.Server.encoder.Frame
 import mrapple100.Server.rtspserver.RtspServerCamera1
+import mrapple100.WaysDetect.Operator.DrawingBoard
 import org.bytedeco.ffmpeg.avcodec.AVCodec
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext
 import org.bytedeco.ffmpeg.avcodec.AVPacket
@@ -16,17 +17,17 @@ import org.bytedeco.ffmpeg.global.swscale.sws_scale
 import org.bytedeco.ffmpeg.swscale.SwsContext
 import org.bytedeco.javacpp.BytePointer
 import org.bytedeco.javacpp.DoublePointer
-import java.awt.Image
-import java.awt.Toolkit
-import java.awt.Transparency
+import java.awt.*
 import java.awt.color.ColorSpace
 import java.awt.image.*
+import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.imageio.ImageIO
 import javax.swing.ImageIcon
 import javax.swing.JLabel
+
 
 class VideoDecodeThread (
         private val codec:AVCodec,
@@ -52,6 +53,9 @@ class VideoDecodeThread (
     var bufferyuv: BytePointer?=null
     var outputyuv: ByteArray?=null
 
+    var g2d:Graphics2D?=null
+
+
 
 
     private var frameq: FrameQueue.Frame? =null
@@ -72,6 +76,7 @@ class VideoDecodeThread (
      //   if (DEBUG) Log.d(TAG, "$name started")
 
         try {
+
 
 
 
@@ -182,26 +187,73 @@ class VideoDecodeThread (
                                     //println("Success!")
                                    // println("output : ${output[0]} ${output[1]} ${output[2]} ${output.size}")
                                     var img = createRGBImage(output!!, context.width(), context.height())
-                                  //  println("img : ${(img!!.raster.dataBuffer as DataBufferByte).data[0]} ${(img!!.raster.dataBuffer as DataBufferByte).data[1]} ${(img!!.raster.dataBuffer as DataBufferByte).data[2]} ${output.size}")
 
-                                    var baos: ByteArrayOutputStream? = null
-                                    try {
-                                        baos = ByteArrayOutputStream()
-                                        ImageIO.write(img, "jpg", baos)
-                                    } finally {
-                                        try {
-                                            baos!!.close()
-                                        } catch (e: java.lang.Exception) {
-                                        }
-                                    }
+                                    //  println("img : ${(img!!.raster.dataBuffer as DataBufferByte).data[0]} ${(img!!.raster.dataBuffer as DataBufferByte).data[1]} ${(img!!.raster.dataBuffer as DataBufferByte).data[2]} ${output.size}")
+
+
                                  //   println("baos : ${baos!!.toByteArray()[0]} ${baos.toByteArray()[1]} ${baos.toByteArray()[2]} ${baos.toByteArray().size}" )
 
                                  //   println("Success!")
 
                                  //   println(""+System.currentTimeMillis()+" "+baos!!.toByteArray().size)
 
+///////////////////  OPERATOR WORK
+                                    val gr2 = img!!.createGraphics()
+                                  //  rtspServer.getDrawingBoard().paint(rtspServer.getDrawingBoard().graphics);
+                                    gr2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+                                   // val gr3 = rtspServer.getDrawingBoard().graphics as Graphics2D
+                                   // gr3.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,1.0f))
+                                   // rtspServer.getDrawingBoard().paint(gr2);
 
 
+                                    gr2.drawImage(rtspServer.getDrawingBoard().image.getScaledInstance(context.width(),context.height(), Image.SCALE_DEFAULT),0,0,null)
+
+                                    gr2.dispose()
+
+                                   // img = draw
+
+                                   // output = img.getData().getb
+
+
+/////////////////////
+                                    var baosjpg: ByteArrayOutputStream? = null
+                                    try {
+                                        baosjpg = ByteArrayOutputStream()
+                                        ImageIO.write(img, "jpg", baosjpg)
+                                    } finally {
+                                        try {
+                                            baosjpg!!.close()
+                                        } catch (e: java.lang.Exception) {
+                                        }
+                                    }
+
+
+//                                    var baos: ByteArrayOutputStream? = null
+//                                    try {
+//                                        baos = ByteArrayOutputStream()
+//                                        ImageIO.write(img, "bmp", baos)
+//                                    } finally {
+//                                        try {
+//                                            baos!!.close()
+//                                        } catch (e: java.lang.Exception) {
+//                                        }
+//                                    }
+                                    //println("IMGIMG "+img!!.data.dataBuffer.size)
+
+                                    val width: Int = img.getWidth()
+                                    val height: Int = img.getHeight()
+                                    val pixels: IntArray = img.getRGB(0, 0, width, height, null, 0, width)
+                                    val buffer = ByteBuffer.allocate(width * height * 3)
+                                    for (pixel in pixels) {
+                                        buffer.put((pixel shr 16 and 0xFF).toByte()) // red
+                                        buffer.put((pixel shr 8 and 0xFF).toByte()) // green
+                                        buffer.put((pixel and 0xFF).toByte()) // blue
+                                    }
+                                    val baos = buffer.array()
+
+                                    output = baos
+
+                                  //  println("OUTPUTOUTPUT "+output!!.size)
                                     //convert rgb to yuv
                                     //println("${context.width()} ${ context.height()}")
 
@@ -218,7 +270,7 @@ class VideoDecodeThread (
                                     frameAfterRGB.format(AV_PIX_FMT_RGB24)
                                   //  val pp2: PointerPointer<*> = PointerPointer<Pointer>(frameAfterRGB)
                                     val bp2 = BytePointer(ByteBuffer.wrap(output))
-                                    av_frame_get_buffer(frameAfterRGB, 32) //было 32
+                                   // av_frame_get_buffer(frameAfterRGB, 32) //было 32
 
                                     av_image_fill_arrays(
                                             frameAfterRGB.data(),
@@ -331,11 +383,14 @@ class VideoDecodeThread (
 //                                    }
                                     //TESTTESTTEST
 
-                                    framePlace.icon = ImageIcon(toolkit.createImage(baos!!.toByteArray(), 0, baos.size()).getScaledInstance(500,800, Image.SCALE_DEFAULT))
+                                    framePlace.icon = ImageIcon(toolkit.createImage(baosjpg!!.toByteArray(), 0, baosjpg.size()).getScaledInstance(800,500, Image.SCALE_DEFAULT))
 
                                     bp2.close()
                                     img!!.flush()
-                                    baos!!.reset()
+                                    //baos. reset()
+                                    baosjpg!!.reset()
+
+
                                     //buffer.close() no need
                                     //bufferyuv.close() no need
                                     framepointer.close()
@@ -344,6 +399,8 @@ class VideoDecodeThread (
                                     av_frame_free(frameAfterRGB)
                                     av_frame_free(yuvFrame)
                                     av_frame_free(rgbFrame)
+                                   // draw.flush()
+
 //                    avcodec_close(context)
 //                    avcodec_free_context(context)
 //
@@ -370,6 +427,8 @@ class VideoDecodeThread (
 //                    break
 //                }
             }
+            g2d!!.dispose()
+
 
             videoFrameQueue.clear()
 
