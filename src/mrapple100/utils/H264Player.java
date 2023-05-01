@@ -20,7 +20,7 @@ public class H264Player {
 
             byte[] b = new byte[1];
             while(fin.read(b)>0){
-                System.out.print(DecodeUtil.byteArrayToHexString(b));
+                //System.out.print(DecodeUtil.byteArrayToHexString(b));
 
            // fos.flush();
             }

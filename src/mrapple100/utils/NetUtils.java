@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -222,10 +223,14 @@ public class NetUtils {
     }
 
     public static int readData(@NotNull InputStream inputStream, @NotNull byte[] buffer, int offset, int length) throws IOException {
-        int readBytes;
+        int readBytes = 0;
         int totalReadBytes = 0;
         do {
-            readBytes = inputStream.read(buffer, offset + totalReadBytes, length - totalReadBytes);
+            try {
+                readBytes = inputStream.read(buffer, offset + totalReadBytes, length - totalReadBytes);
+            }catch(SocketTimeoutException e){
+                
+            }
             if (readBytes > 0)
                 totalReadBytes += readBytes;
         } while (readBytes >= 0 && totalReadBytes < length);
