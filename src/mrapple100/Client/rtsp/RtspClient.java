@@ -592,72 +592,6 @@ public class RtspClient {
         byte[] nalUnitPps = (sdpInfo.videoTrack != null ? sdpInfo.videoTrack.pps : null);
 
         long keepAliveSent = System.currentTimeMillis();
-/*
-        // Create a piped input stream for one of the readers.
-        PipedInputStream in = new PipedInputStream();
-
-        // Create a tee-splitter for the other reader.
-        TeeInputStream tee = new TeeInputStream(inputStream, new PipedOutputStream(in));
-
-        // Create the two buffered readers.
-        InputStreamReader br1 = new InputStreamReader(tee);
-        InputStreamReader br2 = new InputStreamReader(in);*/
-        /*File file = new File("video.264");
-                //val bufferedReader = BufferedReader( InputStreamReader(socket.getInputStream()));
-                //val bufferedWriter = BufferedWriter( OutputStreamWriter(FileOutputStream(file)));
-                try{
-                    FileOutputStream fos =new FileOutputStream(file);
-
-                    byte[] bufferH = new byte[RtpParser.RTP_HEADER_SIZE];
-                    // NetUtils.readData(inputStream, buffer, 0, RtpParser.RTP_HEADER_SIZE);
-                    NetUtils.readData(inputStream, bufferH, 0, 4);
-
-                    int packetSize = RtpParser.RtpHeader.getPacketSize(bufferH);
-
-                    int bodySize =0;
-
-                    if (NetUtils.readData(inputStream, bufferH, 0, RtpParser.RTP_HEADER_SIZE) == RtpParser.RTP_HEADER_SIZE) {
-                        RtpParser.RtpHeader rtpHeader = RtpParser.RtpHeader.parseData(bufferH, packetSize);
-                        if (rtpHeader == null) {
-                            // Header not found. Possible keep-alive response. Search for another RTP header.
-                            boolean foundHeader = RtpParser.RtpHeader.searchForNextRtpHeader(inputStream, bufferH);
-                            if (foundHeader) {
-                                packetSize = RtpParser.RtpHeader.getPacketSize(bufferH);
-                                if (NetUtils.readData(inputStream, bufferH, 0, bufferH.length) == RtpParser.RTP_HEADER_SIZE)
-                                    bodySize = RtpParser.RtpHeader.parseData(bufferH, packetSize).payloadSize;
-                            }
-                        } else {
-                            bodySize = rtpHeader.payloadSize;
-                        }
-                    }
-                    byte[] bufferB = new byte[bodySize];
-                    NetUtils.readData(inputStream, bufferB, 0, bodySize);
-                    //fos.write(Integer.parseInt("\n"));
-                    fos.write(bufferH);
-                    //fos.write(Integer.parseInt("\n"));
-                    fos.write(bufferB);
-
-
-
-                    fos.flush();
-                    fos.close();
-
-                }
-                catch (Exception e){
-                    System.out.println("Error");
-                }
-        System.out.println("start");*/
-        /*FFmpegLogCallback.set();
-        FFmpegFrameGrabber grabber =new FFmpegFrameGrabber(file);
-        grabber.setFormat("h264");
-        grabber.start();
-        // grabber.setDataSource()
-        Frame frame = grabber.grabFrame();
-        Buffer bytePointer = frame.image[0];
-        byte[] datanew = new byte[bytePointer.limit()];
-        datanew = (byte[]) bytePointer.array();
-        System.out.println(datanew);
-        grabber.stop();*/
 
         while (!exitFlag.get()) {
             RtpParser.RtpHeader header = RtpParser.readHeader(inputStream);
@@ -684,7 +618,8 @@ public class RtspClient {
                 byte[] nalUnit = videoParser.processRtpPacketAndGetNalUnit(data, header.payloadSize);
                 if (nalUnit != null) {
                     byte type = VideoCodecUtils.getH264NalUnitType(nalUnit, 0, nalUnit.length);
-                   // System.out.println("NAL u: " + VideoCodecUtils.getH264NalUnitTypeString(type));
+                  //  System.out.println("NAL u: " + VideoCodecUtils.getH264NalUnitTypeString(type));
+
                     switch (type) {
                         case VideoCodecUtils.NAL_SPS:
                             nalUnitSps = nalUnit;

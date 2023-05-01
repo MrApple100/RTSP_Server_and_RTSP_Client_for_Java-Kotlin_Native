@@ -24,6 +24,7 @@ import org.bytedeco.ffmpeg.avformat.AVStream
 import org.bytedeco.ffmpeg.avutil.AVDictionary
 import org.bytedeco.ffmpeg.global.avcodec
 import org.bytedeco.ffmpeg.global.avutil
+import org.bytedeco.javacpp.IntPointer
 import java.io.*
 import java.net.Socket
 import java.net.URI
@@ -291,9 +292,11 @@ var nframe =0
             val codec: AVCodec = avcodec.avcodec_find_decoder(avcodec.AV_CODEC_ID_H264)
             val context: AVCodecContext = avcodec.avcodec_alloc_context3(codec);
             val opts = AVDictionary()
-          //  avutil.av_opt_set(context.priv_data(), "tune", "fastdecode", 0) //?
+
+            avutil.av_opt_set(context.priv_data(), "tune", "fastdecode", 0) //?
 
             avcodec.avcodec_open2(context,codec, opts)
+
 
             //   Log.i(TAG, "Starting video decoder with mime type \"$videoMimeType\"")
             videoDecodeThread = VideoDecodeThread(codec,context,opts,

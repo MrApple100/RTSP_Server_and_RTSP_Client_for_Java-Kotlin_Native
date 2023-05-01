@@ -164,7 +164,7 @@ public class Client {
         //get server RTSP port and IP address from the command line
         //------------------
                 RTSP_server_port = "1935";
-        ServerHost = "172.21.218.208";//"192.168.121.71";
+        ServerHost = "192.168.153.208";//"192.168.121.71";
         theClient.ServerIPAddr = InetAddress.getByName(ServerHost);
 
         //get video filename to request:

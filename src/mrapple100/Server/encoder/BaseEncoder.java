@@ -160,6 +160,8 @@ public abstract class BaseEncoder implements EncoderCallback {
         try {
             Frame frame = getInputFrame();
             while (frame == null) frame = getInputFrame();
+            System.out.println("6 Input to queue: " +System.currentTimeMillis());
+
 //      byteBuffer.clear();
 //      int size = Math.max(0, Math.min(frame.getSize(), byteBuffer.remaining()) - frame.getOffset());
 //      byteBuffer.put(frame.getBuffer(), frame.getOffset(), size);
@@ -202,6 +204,7 @@ public abstract class BaseEncoder implements EncoderCallback {
 //           @Override
 //           public void run() {
         sendBuffer(byteBuffer, bufferInfo);
+        System.out.println("8 Send h264: " +System.currentTimeMillis());
 
 //           }
 //       }).start();
@@ -225,6 +228,8 @@ public abstract class BaseEncoder implements EncoderCallback {
 
     @Override
     public void outputAvailable(MediaBufferInfo bufferInfo ) throws IllegalStateException, InterruptedException {
+        System.out.println("7 queuebb pop: " +System.currentTimeMillis());
+
         ByteBuffer byteBuffer;
 
         byteBuffer = ByteBuffer.wrap(queuebb.pop().getBuffer());
@@ -244,8 +249,11 @@ public abstract class BaseEncoder implements EncoderCallback {
 //            h264 = new byte[(byteBuffer.array().length*2-DecodeUtil.byteArrayToHexString(byteBuffer.array()).indexOf("0000000165"))/2];
 //            System.arraycopy(byteBuffer.array(),DecodeUtil.byteArrayToHexString(byteBuffer.array()).indexOf("000000165")/2,h264,0,(byteBuffer.array().length*2-DecodeUtil.byteArrayToHexString(byteBuffer.array()).indexOf("0000000165"))/2);
 //        }
+
         if(h264!=null) {
-           // System.out.println("OUTPUT2 "+DecodeUtil.byteArrayToHexString(h264).substring(0,100));
+            System.out.println("7 get h264: " +System.currentTimeMillis());
+
+            // System.out.println("OUTPUT2 "+DecodeUtil.byteArrayToHexString(h264).substring(0,100));
 
             ByteBuffer bb = ByteBuffer.wrap(h264);
             byteBuffer.rewind();

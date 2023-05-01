@@ -232,7 +232,7 @@ public class VideoEncoder extends BaseEncoder {
 
       try {
           if ( !queue.push(frame)) {
-            System.out.println("frame discarded");
+            //System.out.println("frame discarded");
           }
       } catch (InterruptedException e) {
           e.printStackTrace();
@@ -338,7 +338,7 @@ public static byte[] imageToByteArray(BufferedImage image) {
   protected Frame getInputFrame() throws InterruptedException {
     Frame frame = queue.pop();
     if (frame == null) return null;
-    if (fpsLimiter.limitFPS()) return getInputFrame();
+    //if (fpsLimiter.limitFPS()) return getInputFrame();
    // byte[] buffer = frame.getBuffer();
  //   boolean isYV12 = frame.getFormat() == 20;//ImageFormat.YV12;
 
