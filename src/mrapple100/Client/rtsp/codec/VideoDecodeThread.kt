@@ -175,15 +175,15 @@ class VideoDecodeThread(
 
 ///////////////////  OPERATOR WORK
                                 val time1 = System.currentTimeMillis();
-
+                            if(false) {
                                 val gr2 = img!!.createGraphics()
 
                                 gr2.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f);
-                                val eskiz = rtspServer.getDrawingBoard().image.getScaledInstance(context.width(),context.height(),Image.SCALE_DEFAULT)
+                                val eskiz = rtspServer.getDrawingBoard().image.getScaledInstance(context.width(), context.height(), Image.SCALE_DEFAULT)
                                 gr2.drawImage(eskiz, 0, 0, null)
 
                                 gr2.dispose()
-
+                            }
                                 val time2 = System.currentTimeMillis();
 
 /////////////////////
@@ -212,6 +212,9 @@ class VideoDecodeThread(
 //                                    imageWithoutAlpha.graphics.drawImage(img,0,0,null)
 //                                    img =imageWithoutAlpha
 
+
+                                var conW=img.width
+                                var conH=img.height
                         if(false) {
 
                             output = getBytesFromImage(img)
@@ -222,11 +225,14 @@ class VideoDecodeThread(
 
                           //  output = getBytesFromImage(toBufferedImage(eskiz))
 
+                            val eskiz = rtspServer.getDrawingBoard().image.getScaledInstance(context.width(), context.height(), Image.SCALE_DEFAULT)
 
                             val eskiz2 = toBufferedImage(eskiz)
+                            conW=eskiz2.width
+                            conH=eskiz2.height
 
-                            val width: Int = eskiz2.getWidth()
-                            val height: Int = eskiz2.getHeight()
+                            val width: Int = eskiz2.width
+                            val height: Int = eskiz2.height
                             val pixels: IntArray = eskiz2.getRGB(0, 0, width, height, null, 0, width)
                             val buffer = ByteBuffer.allocate(width * height * 3)
                             for (pixel in pixels) {
@@ -239,6 +245,8 @@ class VideoDecodeThread(
                             println("Size " + output!!.size)
                             println("Size " + DecodeUtil.byteArrayToHexString(output).subSequence(0,17))
                         }
+                                println("Size " + conW+" "+conH)
+
 
 
                                 val time4 = System.currentTimeMillis();
@@ -263,25 +271,25 @@ class VideoDecodeThread(
                                         bp2
                                         ,
                                         AV_PIX_FMT_RGB24,//AV_PIX_FMT_RGB24,
-                                        img.width,img.height,
+                                        conW,conH,
                                        // context.width(),
                                         //context.height(),
                                         1)
 
 
                                 if (swsContext2 == null) {
-                                    swsContext2 = sws_getContext(/*context.width(), context.height(),*/img.width,img.height, AV_PIX_FMT_RGB24,/*AV_PIX_FMT_RGB24,*/ /*context.width(), context.height(),*/img.width,img.height, AV_PIX_FMT_YUV420P, 0, null, null, DoublePointer())
+                                    swsContext2 = sws_getContext(/*context.width(), context.height(),*/conW,conH, AV_PIX_FMT_RGB24,/*AV_PIX_FMT_RGB24,*/ /*context.width(), context.height(),*/conW,conH, AV_PIX_FMT_YUV420P, 0, null, null, DoublePointer())
                                 }
 
                                 val yuvFrame: AVFrame = avutil.av_frame_alloc()
                                 if (bufferyuv == null) {
-                                    sizeyuv = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_YUV420P, /*context.width(), context.height(),*/img.width,img.height, 1)
+                                    sizeyuv = avutil.av_image_get_buffer_size(avutil.AV_PIX_FMT_YUV420P, /*context.width(), context.height(),*/conW,conH, 1)
                                     bufferyuv = BytePointer(avutil.av_malloc(sizeyuv!!.toLong()))
                                     outputyuv = ByteArray(sizeyuv!!)
                                 }
-                                avutil.av_image_fill_arrays(yuvFrame.data(), yuvFrame.linesize(), bufferyuv, avutil.AV_PIX_FMT_YUV420P, /*context.width(), context.height(),*/img.width,img.height, 1)
+                                avutil.av_image_fill_arrays(yuvFrame.data(), yuvFrame.linesize(), bufferyuv, avutil.AV_PIX_FMT_YUV420P, /*context.width(), context.height(),*/conW,conH, 1)
 
-                                sws_scale(swsContext2, frameAfterRGB.data(), frameAfterRGB.linesize(), 0, /*context.height(),*/img.height, yuvFrame.data(), yuvFrame.linesize())
+                                sws_scale(swsContext2, frameAfterRGB.data(), frameAfterRGB.linesize(), 0, /*context.height(),*/conH, yuvFrame.data(), yuvFrame.linesize())
                                 bufferyuv!!.get(outputyuv!!)
 
 
@@ -464,7 +472,7 @@ class VideoDecodeThread(
         private const val DEBUG = false
     }
 
-    private fun createRGBImage(bytes: ByteArray, width: Int, height: Int): BufferedImage? {
+    private fun createRGBImage(bytes: ByteArray, width: Int, height: Int): BufferedImage {
         val buffer = DataBufferByte(bytes, bytes.size)
         val cm: ColorModel = ComponentColorModel(ColorSpace.getInstance(ColorSpace.CS_sRGB), intArrayOf(8, 8, 8), false, false, Transparency.OPAQUE, DataBuffer.TYPE_BYTE)
         return BufferedImage(cm, Raster.createInterleavedRaster(buffer, width, height, width * 3, 3, intArrayOf(0, 1, 2), null), false, null)

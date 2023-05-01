@@ -282,7 +282,7 @@ public abstract class BaseEncoder implements EncoderCallback {
             frame.width(c.width());
             frame.height(c.height());
             frame.format(AV_PIX_FMT_YUV420P);
-            av_frame_get_buffer(frame,32); //было 32
+            //av_frame_get_buffer(frame,32); //было 32
             av_image_fill_arrays(
                     frame.data(),
                     frame.linesize(),
