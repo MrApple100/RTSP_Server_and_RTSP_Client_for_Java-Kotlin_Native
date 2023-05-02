@@ -1,0 +1,20 @@
+
+
+Version:	3.50
+CmdLine:	D:\Dekstop\mdev\PCKotlinJavaClientFromAndroidRe-Build\out\artifacts\EpsonServerClient\OperatorEpsonServerClient.exe --l4j-debug
+JNI:		No
+WOW64:		Yes
+Working dir:	D:\Dekstop\mdev\PCKotlinJavaClientFromAndroidRe-Build\out\artifacts\EpsonServerClient\.
+Requires JDK:	No
+Requires 64-Bit: No
+Java min ver:	1.008.000
+Java max ver:	
+Substitute:	JAVA_HOME = C:\Users\MagicBook\.jdks\openjdk-15.0.1\bin
+Substitute:	PATH = C:\Users\MagicBook\.jdks\openjdk-15.0.1\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Program Files (x86)\dotnet\;C:\Users\MagicBook\.android;D:\AndroidSeiingsMain\platform-tools;C:\Program Files\dotnet\;D:\PuTTY\;C:\Users\MagicBook\AppData\Local\Microsoft\WindowsApps;C:\Users\MagicBook\AppData\Local\gitkraken\bin;C:\Users\MagicBook\AppData\Local\Microsoft\WindowsApps;D:\heroku\bin;D:\CLion\CLion 2021.3.3\bin;C:\Users\MagicBook\AppData\Local\JetBrains\Toolbox\scripts;D:\VSCode\Microsoft VS Code\bin;E:\Python Core\Scripts;D:\Rider\JetBrains Rider 2022.3.1\bin;C:\Users\MagicBook\.dotnet\tools;C:\Users\MagicBook\.jdks\openjdk-15.0.1\bin
+JRE paths:	C:\Users\MagicBook\.jdks\openjdk-15.0.1\bin;C:\Users\MagicBook\.jdks\openjdk-15.0.1\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Program Files (x86)\dotnet\;C:\Users\MagicBook\.android;D:\AndroidSeiingsMain\platform-tools;C:\Program Files\dotnet\;D:\PuTTY\;C:\Users\MagicBook\AppData\Local\Microsoft\WindowsApps;C:\Users\MagicBook\AppData\Local\gitkraken\bin;C:\Users\MagicBook\AppData\Local\Microsoft\WindowsApps;D:\heroku\bin;D:\CLion\CLion 2021.3.3\bin;C:\Users\MagicBook\AppData\Local\JetBrains\Toolbox\scripts;D:\VSCode\Microsoft VS Code\bin;E:\Python Core\Scripts;D:\Rider\JetBrains Rider 2022.3.1\bin;C:\Users\MagicBook\.dotnet\tools;C:\Users\MagicBook\.jdks\openjdk-15.0.1\bin
+Check launcher:	C:\Users\MagicBook\.jdks\openjdk-15.0.1\bin\javaw.exe (OK)
+Version string: 1.015.000_001 / 64-Bit (OK)
+Launcher:	C:\Users\MagicBook\.jdks\openjdk-15.0.1\bin\javaw.exe
+Launcher args:	-jar "D:\Dekstop\mdev\PCKotlinJavaClientFromAndroidRe-Build\out\artifacts\EpsonServerClient\OperatorEpsonServerClient.exe"
+Args length:	122/32768 chars
+Exit code:	0
