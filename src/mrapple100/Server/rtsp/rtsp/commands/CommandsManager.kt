@@ -37,9 +37,9 @@ open class CommandsManager {
   private val timeStamp: Long
   var sampleRate = 32000
   var isStereo = true
-  var protocol: Protocol = Protocol.TCP
+  var protocol: Protocol = Protocol.UDP//TCP
   var videoDisabled = false
-  var audioDisabled = false
+  var audioDisabled = true
   private val commandParser = CommandParser()
 
   //For udp

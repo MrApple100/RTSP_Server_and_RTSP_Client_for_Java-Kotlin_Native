@@ -55,7 +55,7 @@ open class RtspSurfaceView(
     private var password: String? = null
     private var userAgent: String? = null
     private var requestVideo = true
-    private var requestAudio = true
+    private var requestAudio = false
     private var rtspThread: RtspThread? = null
     private var videoFrameQueue = FrameQueue(1)
     private var audioFrameQueue = FrameQueue(10)
