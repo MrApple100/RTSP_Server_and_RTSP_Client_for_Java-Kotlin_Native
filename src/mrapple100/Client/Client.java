@@ -3,6 +3,7 @@ package mrapple100.Client;
 import mrapple100.Client.rtsp.widget.RtspSurfaceView;
 import mrapple100.Server.CustomConnectCheckerRTSP;
 import mrapple100.Server.rtspserver.RtspServerCamera1;
+import mrapple100.WaysDetect.Operator.DragAndDropFrame;
 import mrapple100.WaysDetect.Operator.DrawingBoard;
 import mrapple100.utils.FrameSynchronizer;
 
@@ -36,8 +37,9 @@ public class Client {
     JLabel iplabel = new JLabel();
     JButton sendButton = new JButton("Send");
 
-
-    DrawingBoard drawingBoard = new DrawingBoard(800,500);
+    JLabel message = new JLabel();
+    DragAndDropFrame dragAndDropFrame = new DragAndDropFrame(message);
+    DrawingBoard drawingBoard = new DrawingBoard(800,500,message);
     JButton clearButton = new JButton("ClearDraw");
 
 
@@ -106,6 +108,7 @@ public class Client {
         mainPanel.add(buttonPanel2);
         mainPanel.add(buttonPanel3);
         mainPanel.add(drawingBoard);
+        mainPanel.add(dragAndDropFrame);
 
        // mainPanel.add(sendButton);
         mainPanel.add(statLabel1);
@@ -116,6 +119,7 @@ public class Client {
         framePlace.setBounds(0,0,800,500);
         frameAfterPlace.setBounds(850,0,800,500);
         drawingBoard.setBounds(0,0,800,500);
+        dragAndDropFrame.setBounds(400,0,400,400);
         iplabel.setBounds(1000,900,380,50);
         buttonPanel.setBounds(200,900,380,50);
         buttonPanel2.setBounds(600,900,380,50);
@@ -129,8 +133,10 @@ public class Client {
 
 
 
-        f.setSize(new Dimension(1600,1200));
+        f.setSize(new Dimension(1800,1200));
         f.setVisible(true);
+
+
 
         //init timer
         //--------------------------
@@ -164,7 +170,7 @@ public class Client {
         //get server RTSP port and IP address from the command line
         //------------------
                 RTSP_server_port = "1935";
-        ServerHost = "192.168.39.56";//"192.168.121.71";
+        ServerHost = "192.168.121.71";//"192.168.121.71";
         theClient.ServerIPAddr = InetAddress.getByName(ServerHost);
 
         //get video filename to request:
@@ -173,7 +179,7 @@ public class Client {
 
         url = "rtsp://"+ServerHost+":"+RTSP_server_port+"/"+VideoFileName;
 
-
+        theClient.dragAndDropFrame.setDrawablePlace(theClient.drawingBoard);
 
         //Establish a TCP connection with the server to exchange RTSP messages
         //------------------

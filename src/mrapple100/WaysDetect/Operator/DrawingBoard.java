@@ -26,7 +26,7 @@ public class DrawingBoard extends JPanel implements MouseListener, MouseMotionLi
 
     private ArrayBlockingQueue<PrevCurLine> prevCurLineDeque = new ArrayBlockingQueue<PrevCurLine>(1000);
     private JPanel instance;
-    public DrawingBoard(int width, int height) {
+    public DrawingBoard(int width, int height, JLabel message) {
         this.width=width;
         this.height=height;
         // создаем новый BufferedImage и получаем его графический контекст
@@ -47,6 +47,7 @@ public class DrawingBoard extends JPanel implements MouseListener, MouseMotionLi
         g2d.setStroke(new BasicStroke(10));
         g2d.dispose();
         instance = this;
+        instance.add(message);
         // добавляем слушателей мыши
         addMouseListener(this);
         addMouseMotionListener(this);
@@ -156,7 +157,7 @@ public class DrawingBoard extends JPanel implements MouseListener, MouseMotionLi
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("Drawing Panel");
-        DrawingBoard panel = new DrawingBoard(1920, 1080);
+        DrawingBoard panel = new DrawingBoard(1920, 1080,new JLabel());
         frame.getContentPane().add(panel);
         frame.pack();
         frame.setVisible(true);
